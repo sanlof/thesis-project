@@ -1,0 +1,34 @@
+.App {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+header {
+  background: #c62828;
+  color: white;
+  padding: 20px;
+  border-radius: 8px;
+  margin-bottom: 30px;
+}
+
+h1 {
+  margin: 0;
+}
+h2 {
+  color: #333;
+}
+
+.patients-list {
+  display: grid;
+  gap: 15px;
+}
+
+.patient-card {
+  background: #f5f5f5;
+  padding: 15px;
+  border-radius: 8px;
+  border-left: 4px solid #c62828;
+  display: flex;
+  justify-content: space-between;
+}
