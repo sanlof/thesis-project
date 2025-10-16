@@ -40,7 +40,7 @@ When you are done, quit by using this command: `\q`.
 2. Now that there is a user with the username "postgres", you may run the following command in order to setup the database schema:
 
 ```
-sql -U postgres -f shared/database-schemas/schema.sql
+psql -U postgres -f shared/database-schemas/schema.sql
 ```
 
 3. To confirm that the database was successfully created, run:
