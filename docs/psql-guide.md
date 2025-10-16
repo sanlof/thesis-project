@@ -27,29 +27,42 @@ brew services stop postgresql
 
 ## Set Up Database Schema
 
-1. In order to set up the database, you first need to create a new user called postgres by using the following command:
+1. First, make sure PostgreSQL is running (see "Start running PostgreSQL" above).
+
+2. Create a new user called "postgres". Run this command in your terminal:
 
 ```
-psql -U USERNAME -d postgres
-```
-**NB: Change USERNAME to match whatever username you use on your computer, i.e. John, John-Doe etc.**
-
-Then you need to type this:
-
-```
-CREATE ROLE postgres WITH LOGIN SUPERUSER;
+createuser -s postgres
 ```
 
-When you are done, quit by using this command: `\q`.
+This creates a superuser role named "postgres" that you'll use for database operations.
 
-2. Now that there is a user with the username "postgres", you may run the following command in order to setup the database schema:
+3. Now set up the database schema by running:
 
 ```
 psql -U postgres -f shared/database-schemas/schema.sql
 ```
 
-3. To confirm that the database was successfully created, run:
+4. To confirm that the database was successfully created, run:
 
 ```
 psql -U postgres -l
 ```
+
+This will list all databases. You should see your newly created database in the list.
+
+## Troubleshooting
+
+If you get a "role does not exist" error, it means the postgres user wasn't created successfully. Try connecting with your Mac username first:
+
+```
+psql -d postgres
+```
+
+Then create the postgres role manually:
+
+```sql
+CREATE ROLE postgres WITH LOGIN SUPERUSER;
+```
+
+Type `\q` to quit, then proceed with step 3 above.
