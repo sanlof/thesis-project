@@ -37,7 +37,7 @@ psql -U USERNAME -d postgres
 
 When you are done, quit by using this command: `\q`.
 
-2. Now that you have a new user with the username "postgres", you can run the following command in order to setup the database schema:
+2. Now that there is a user with the username "postgres", you may run the following command in order to setup the database schema:
 
 ```
 sql -U postgres -f shared/database-schemas/schema.sql
