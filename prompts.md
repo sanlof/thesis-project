@@ -31,3 +31,9 @@ Make a complete setup guide according to the simple project structure you just g
 
 Make a readme-file for the file structure
 (Claude named this ARCHITECTURE.md)
+
+# 1 - Project Setup (with GPT-5)
+
+## Prompt 1.4
+
+Write a complete PostgreSQL SQL setup script that creates two separate databases — police_db and hospital_db. Each database should contain only one table: police_db.individuals and hospital_db.patients. Both tables should include columns id, full_name, personal_id, and flag. The flag column should be a boolean in both tables, and any change to the flag in police_db.individuals should automatically mirror to hospital_db.patients where personal_id matches. Use postgres_fdw to implement the synchronization. Include everything needed for setup, including extension creation, foreign server setup, user mapping and trigger definition. Do not include comments, make it copy-and-paste friendly.
