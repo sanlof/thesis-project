@@ -1,50 +1,184 @@
 # PostgreSQL Quick Guide
 
-For this guide to work, you need Mac OS, Homebrew and VSCode.
-Also make sure that you have PostgreSQL installed (find download link in README.md).
+A practical guide for setting up and using PostgreSQL with VS Code on macOS.
 
-## Start running PostgreSQL
+## Prerequisites
 
-Run the following command in the terminal in VSCode:
+Before you begin, ensure you have the following installed:
 
+- **macOS** (any recent version)
+- **Homebrew** - Package manager for macOS
+- **VS Code** - Your code editor
+- **PostgreSQL** - Installed via Homebrew
+
+To install PostgreSQL if you haven't already:
+
+```bash
+brew install postgresql@15
 ```
+
+## Starting PostgreSQL
+
+### Generic Command (Latest Version)
+
+```bash
 brew services start postgresql
 ```
 
-or, if you want to specify a version, add @XX like so:
+### Version-Specific Command
 
-```
+If you have a specific version installed (e.g., PostgreSQL 15):
+
+```bash
 brew services start postgresql@15
 ```
 
-## Stop running PostgreSQL
+To verify PostgreSQL is running:
 
-To stop running PostgreSQL in VSCode, use the following command:
-
+```bash
+brew services list
 ```
+
+Look for `postgresql` with a status of `started`.
+
+## Stopping PostgreSQL
+
+### Generic Command
+
+```bash
 brew services stop postgresql
 ```
 
-## Set Up Database Schema
+### Version-Specific Command
 
-1. In order to set up the database, you first need to create a new user called postgres by using the following command:
-
-```
-psql -U USERNAME -d postgres
+```bash
+brew services stop postgresql@15
 ```
 
-**NB: Change USERNAME to match whatever username you use on your computer, i.e. John, John-Doe etc.**
+## Setting Up Your Database Schema
 
-When you are done, quit by using this command: `\q`.
+Follow these steps to create and configure your database.
 
-2. Now that there is a user with the username "postgres", you may run the following command in order to setup the database schema:
+### Step 1: Create a PostgreSQL Superuser
 
+First, create a superuser with your macOS username:
+
+```bash
+createuser -s postgres
 ```
-sql -U postgres -f shared/database-schemas/schema.sql
+
+This creates a superuser named `postgres` with full permissions.
+
+### Step 2: Create Your Database
+
+Create a new database (replace `your_database_name` with your desired name):
+
+```bash
+createdb your_database_name
 ```
 
-3. To confirm that the database was successfully created, run:
+### Step 3: Run Your Schema File
 
+Execute your schema file to set up tables and structure:
+
+```bash
+psql -U postgres -d your_database_name -f shared/database-schemas/schema.sql
 ```
-psql -U postgres -l
+
+**Command breakdown:**
+- `-U postgres` - Connect as the postgres user
+- `-d your_database_name` - Specify which database to use
+- `-f shared/database-schemas/schema.sql` - Execute the SQL file
+
+### Step 4: Verify Database Creation
+
+Connect to your database to verify everything worked:
+
+```bash
+psql -U postgres -d your_database_name
 ```
+
+Once connected, you can list all tables:
+
+```sql
+\dt
+```
+
+To see more database information:
+
+```sql
+\l
+```
+
+To exit the PostgreSQL prompt:
+
+```sql
+\q
+```
+
+## Troubleshooting
+
+### Error: "role does not exist"
+
+If you encounter an error like `psql: error: FATAL: role "your_username" does not exist`, try these solutions:
+
+**Solution 1: Create a role with your macOS username**
+
+```bash
+createuser -s $(whoami)
+```
+
+This creates a superuser with your current macOS username.
+
+**Solution 2: Always specify the user explicitly**
+
+When connecting to PostgreSQL, always use the `-U` flag:
+
+```bash
+psql -U postgres -d your_database_name
+```
+
+**Solution 3: Set a default user in your shell profile**
+
+Add this to your `~/.zshrc` or `~/.bash_profile`:
+
+```bash
+export PGUSER=postgres
+```
+
+Then reload your shell:
+
+```bash
+source ~/.zshrc
+```
+
+### Checking Current Roles
+
+To see all existing roles in PostgreSQL:
+
+```bash
+psql -U postgres -c "\du"
+```
+
+## Quick Reference
+
+| Action | Command |
+|--------|---------|
+| Start PostgreSQL | `brew services start postgresql` |
+| Stop PostgreSQL | `brew services stop postgresql` |
+| Create database | `createdb database_name` |
+| Connect to database | `psql -U postgres -d database_name` |
+| Run SQL file | `psql -U postgres -d database_name -f path/to/file.sql` |
+| List databases | `psql -U postgres -c "\l"` |
+| List tables | `\dt` (inside psql prompt) |
+
+## Additional Tips
+
+- **VS Code Extension**: Install the "PostgreSQL" extension by Chris Kolkman for database management within VS Code
+- **Connection String Format**: `postgresql://postgres@localhost:5432/your_database_name`
+- **Default Port**: PostgreSQL runs on port `5432` by default
+- **Data Directory**: Homebrew stores PostgreSQL data in `/opt/homebrew/var/postgresql@15/`
+
+---
+
+*Need more help? Check the official PostgreSQL documentation at [postgresql.org/docs](https://www.postgresql.org/docs/)*
