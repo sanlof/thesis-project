@@ -32,8 +32,13 @@ brew services stop postgresql
 ```
 psql -U USERNAME -d postgres
 ```
-
 **NB: Change USERNAME to match whatever username you use on your computer, i.e. John, John-Doe etc.**
+
+Then you need to type this:
+
+```
+CREATE ROLE postgres WITH LOGIN SUPERUSER;
+```
 
 When you are done, quit by using this command: `\q`.
 
