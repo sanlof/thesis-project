@@ -32,10 +32,6 @@ Make a complete setup guide according to the simple project structure you just g
 Make a readme-file for the file structure
 (Claude named this ARCHITECTURE.md)
 
-## Prompt 1.4 (with GPT-5)
-
-Write a complete PostgreSQL SQL setup script that creates two separate databases — police_db and hospital_db. Each database should contain only one table: police_db.individuals and hospital_db.patients. Both tables should include columns id, full_name, personal_id, and flag. The flag column should be a boolean in both tables, and any change to the flag in police_db.individuals should automatically mirror to hospital_db.patients where personal_id matches. Use postgres_fdw to implement the synchronization. Include everything needed for setup, including extension creation, foreign server setup, user mapping and trigger definition. Do not include comments, make it copy-and-paste friendly.
-
 ## Prompt 1.4 (with Claude Sonnet 4.5)
 
 Create a comprehensive quick guide document for setting up and using PostgreSQL with VS Code on Mac OS. The guide should be titled 'PostgreSQL Quick Guide' and include the following sections:
@@ -49,3 +45,13 @@ Create a comprehensive quick guide document for setting up and using PostgreSQL 
    - Verifying the database was created successfully
 5. A troubleshooting section for the common 'role does not exist' error
    Format it in clear markdown with code blocks for all terminal commands. Keep the tone professional but concise. Make it practical and easy to follow for developers who are new to PostgreSQL.
+
+# 2 - Building the Backend
+
+## Prompt 2.1 (with GPT-5)
+
+Write a complete PostgreSQL SQL setup script that creates two separate databases — police_db and hospital_db. Each database should contain only one table: police_db.individuals and hospital_db.patients. Both tables should include columns id, full_name, personal_id, and flag. The flag column should be a boolean in both tables, and any change to the flag in police_db.individuals should automatically mirror to hospital_db.patients where personal_id matches. Use postgres_fdw to implement the synchronization. Include everything needed for setup, including extension creation, foreign server setup, user mapping and trigger definition. Do not include comments, make it copy-and-paste friendly.
+
+## Prompt 2.2 (with GPT-5)
+
+Generate PostgreSQL seed data for two databases (police_db.individuals and hospital_db.patients) with columns: id, full_name, personal_id, flag. Create 8 matching records in both databases and 2 police-only records. Use Swedish names and personal IDs (YYYYMMDD-XXXX format).
