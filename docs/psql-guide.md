@@ -81,13 +81,25 @@ psql -U postgres -f shared/database-schemas/schema.sql
 - `-U postgres` - Connect as the postgres user
 - `-f shared/database-schemas/schema.sql` - Execute the SQL file
 
-This single command will:
+This command will:
 - Create both `police_db` and `hospital_db` databases
 - Set up all tables and relationships
 - Configure postgres_fdw for cross-database synchronization
-- Insert seed data into both databases
 
-### Step 3: Verify Database Creation
+### Step 3: Seed the Databases with Sample Data
+
+After creating the schema, populate your databases with seed data:
+
+```bash
+psql -U postgres -f shared/database-schemas/seed-data.sql
+```
+
+This will insert:
+- 8 matching records in both `police_db.individuals` and `hospital_db.patients`
+- 2 additional police-only records (Simon Nyberg and Carina Dahl)
+- Swedish names with Swedish personal ID format (YYYYMMDD-XXXX)
+
+### Step 4: Verify Database Creation
 
 Connect to the hospital database to verify everything worked:
 
@@ -148,14 +160,14 @@ psql -U postgres -d police_db
 ### Update a flag in the police database:
 
 ```sql
-UPDATE individuals SET flag = true WHERE personal_id = '19850615-1234';
+UPDATE individuals SET flag = true WHERE personal_id = '19850312-2398';
 ```
 
 ### Verify it synced to the hospital database:
 
 ```sql
 \c hospital_db
-SELECT full_name, personal_id, flag FROM patients WHERE personal_id = '19850615-1234';
+SELECT full_name, personal_id, flag FROM patients WHERE personal_id = '19850312-2398';
 ```
 
 You should see the flag is now `true` in the hospital database as well!
@@ -164,7 +176,7 @@ You should see the flag is now `true` in the hospital database as well!
 
 ```sql
 \c police_db
-UPDATE individuals SET flag = true WHERE personal_id IN ('19920308-5678', '19780422-9012');
+UPDATE individuals SET flag = true WHERE personal_id IN ('19781123-5634', '19670630-8841');
 
 \c hospital_db
 SELECT full_name, personal_id, flag FROM patients WHERE flag = true;
@@ -180,6 +192,7 @@ If you need to start fresh (useful during development):
 psql -U postgres -c "DROP DATABASE IF EXISTS police_db;"
 psql -U postgres -c "DROP DATABASE IF EXISTS hospital_db;"
 psql -U postgres -f shared/database-schemas/schema.sql
+psql -U postgres -f shared/database-schemas/seed-data.sql
 ```
 
 ### Option 2: Just clear the data
@@ -189,7 +202,11 @@ psql -U postgres -d hospital_db -c "TRUNCATE patients RESTART IDENTITY CASCADE;"
 psql -U postgres -d police_db -c "TRUNCATE individuals RESTART IDENTITY CASCADE;"
 ```
 
-Then re-run just the INSERT statements from your schema file.
+Then re-run the seed data file:
+
+```bash
+psql -U postgres -f shared/database-schemas/seed-data.sql
+```
 
 ## Troubleshooting
 
@@ -255,6 +272,7 @@ psql -U postgres -c "\du"
 | Start PostgreSQL | `brew services start postgresql` |
 | Stop PostgreSQL | `brew services stop postgresql` |
 | Run schema file | `psql -U postgres -f shared/database-schemas/schema.sql` |
+| Seed databases | `psql -U postgres -f shared/database-schemas/seed-data.sql` |
 | Connect to database | `psql -U postgres -d database_name` |
 | List databases | `\l` (inside psql prompt) |
 | List tables | `\dt` (inside psql prompt) |
@@ -268,7 +286,7 @@ psql -U postgres -c "\du"
 - **Connection String Format**: `postgresql://postgres@localhost:5432/your_database_name`
 - **Default Port**: PostgreSQL runs on port `5432` by default
 - **Data Directory**: Homebrew stores PostgreSQL data in `/opt/homebrew/var/postgresql@15/`
-- **View Seed Data**: All seed data is included in the main schema file, so you only need to run one command to set everything up
+- **Separate Files**: The schema and seed data are in separate files for easier management during development
 
 ---
 
