@@ -55,3 +55,9 @@ Write a complete PostgreSQL SQL setup script that creates two separate databases
 ## Prompt 2.2 (with GPT-5)
 
 Generate PostgreSQL seed data for two databases (police_db.individuals and hospital_db.patients) with columns: id, full_name, personal_id, flag. Create 8 matching records in both databases and 2 police-only records. Use Swedish names and personal IDs (YYYYMMDD-XXXX format).
+
+## Prompt 2.3 (with Claude Sonnet 4.5)
+
+\*Prompt submitted with repository access granted to the AI.
+
+Using this repo, create a series of AI prompts in order to generate code for the entire backend of this project.
