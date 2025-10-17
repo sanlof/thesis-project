@@ -69,33 +69,30 @@ createuser -s postgres
 
 This creates a superuser named `postgres` with full permissions.
 
-### Step 2: Create Your Database
+### Step 2: Run Your Schema File
 
-Create a new database (replace `your_database_name` with your desired name):
-
-```bash
-createdb your_database_name
-```
-
-### Step 3: Run Your Schema File
-
-Execute your schema file to set up tables and structure:
+Execute your schema file to create databases, tables, and structure:
 
 ```bash
-psql -U postgres -d your_database_name -f shared/database-schemas/schema.sql
+psql -U postgres -f shared/database-schemas/schema.sql
 ```
 
 **Command breakdown:**
 - `-U postgres` - Connect as the postgres user
-- `-d your_database_name` - Specify which database to use
 - `-f shared/database-schemas/schema.sql` - Execute the SQL file
 
-### Step 4: Verify Database Creation
+This single command will:
+- Create both `police_db` and `hospital_db` databases
+- Set up all tables and relationships
+- Configure postgres_fdw for cross-database synchronization
+- Insert seed data into both databases
 
-Connect to your database to verify everything worked:
+### Step 3: Verify Database Creation
+
+Connect to the hospital database to verify everything worked:
 
 ```bash
-psql -U postgres -d your_database_name
+psql -U postgres -d hospital_db
 ```
 
 Once connected, you can list all tables:
@@ -104,7 +101,29 @@ Once connected, you can list all tables:
 \dt
 ```
 
-To see more database information:
+Check the patients data:
+
+```sql
+SELECT * FROM patients;
+```
+
+To exit and check the police database:
+
+```sql
+\q
+```
+
+```bash
+psql -U postgres -d police_db
+```
+
+Check the individuals data:
+
+```sql
+SELECT * FROM individuals;
+```
+
+To see all databases:
 
 ```sql
 \l
@@ -115,6 +134,62 @@ To exit the PostgreSQL prompt:
 ```sql
 \q
 ```
+
+## Testing Flag Synchronization
+
+One of the key features of this project is automatic flag synchronization between databases. Here's how to test it:
+
+### Connect to the police database:
+
+```bash
+psql -U postgres -d police_db
+```
+
+### Update a flag in the police database:
+
+```sql
+UPDATE individuals SET flag = true WHERE personal_id = '19850615-1234';
+```
+
+### Verify it synced to the hospital database:
+
+```sql
+\c hospital_db
+SELECT full_name, personal_id, flag FROM patients WHERE personal_id = '19850615-1234';
+```
+
+You should see the flag is now `true` in the hospital database as well!
+
+### Test multiple updates:
+
+```sql
+\c police_db
+UPDATE individuals SET flag = true WHERE personal_id IN ('19920308-5678', '19780422-9012');
+
+\c hospital_db
+SELECT full_name, personal_id, flag FROM patients WHERE flag = true;
+```
+
+## Resetting Your Database
+
+If you need to start fresh (useful during development):
+
+### Option 1: Drop and recreate everything
+
+```bash
+psql -U postgres -c "DROP DATABASE IF EXISTS police_db;"
+psql -U postgres -c "DROP DATABASE IF EXISTS hospital_db;"
+psql -U postgres -f shared/database-schemas/schema.sql
+```
+
+### Option 2: Just clear the data
+
+```bash
+psql -U postgres -d hospital_db -c "TRUNCATE patients RESTART IDENTITY CASCADE;"
+psql -U postgres -d police_db -c "TRUNCATE individuals RESTART IDENTITY CASCADE;"
+```
+
+Then re-run just the INSERT statements from your schema file.
 
 ## Troubleshooting
 
@@ -152,6 +227,19 @@ Then reload your shell:
 source ~/.zshrc
 ```
 
+### Error: "database already exists"
+
+If you get this error when running the schema file:
+
+```bash
+# Drop existing databases first
+psql -U postgres -c "DROP DATABASE IF EXISTS police_db;"
+psql -U postgres -c "DROP DATABASE IF EXISTS hospital_db;"
+
+# Then run the schema file again
+psql -U postgres -f shared/database-schemas/schema.sql
+```
+
 ### Checking Current Roles
 
 To see all existing roles in PostgreSQL:
@@ -166,11 +254,13 @@ psql -U postgres -c "\du"
 |--------|---------|
 | Start PostgreSQL | `brew services start postgresql` |
 | Stop PostgreSQL | `brew services stop postgresql` |
-| Create database | `createdb database_name` |
+| Run schema file | `psql -U postgres -f shared/database-schemas/schema.sql` |
 | Connect to database | `psql -U postgres -d database_name` |
-| Run SQL file | `psql -U postgres -d database_name -f path/to/file.sql` |
-| List databases | `psql -U postgres -c "\l"` |
+| List databases | `\l` (inside psql prompt) |
 | List tables | `\dt` (inside psql prompt) |
+| Switch database | `\c database_name` (inside psql prompt) |
+| Exit psql | `\q` |
+| Drop database | `psql -U postgres -c "DROP DATABASE database_name;"` |
 
 ## Additional Tips
 
@@ -178,6 +268,7 @@ psql -U postgres -c "\du"
 - **Connection String Format**: `postgresql://postgres@localhost:5432/your_database_name`
 - **Default Port**: PostgreSQL runs on port `5432` by default
 - **Data Directory**: Homebrew stores PostgreSQL data in `/opt/homebrew/var/postgresql@15/`
+- **View Seed Data**: All seed data is included in the main schema file, so you only need to run one command to set everything up
 
 ---
 
