@@ -58,6 +58,22 @@ Generate PostgreSQL seed data for two databases (police_db.individuals and hospi
 
 ## Prompt 2.3 (with Claude Sonnet 4.5)
 
-\*Prompt submitted with repository access granted to the AI.
+_Prompt submitted with repository access granted to the AI._
 
 Using this repo, create a series of AI prompts in order to generate code for the entire backend of this project.
+
+_See `backend-prompts.md` for results._
+
+## Prompt 2.4 (with Claude Sonnet 4.5)
+
+A Rust backend project with multiple services (e.g., police-system and hospital-system) is failing to build and run due to sqlx errors such as missing relations or columns (e.g., relation "cases" does not exist, column "patient_id" does not exist) and unresolved module errors like use of unresolved module or unlinked crate 'log'.
+
+The database schema and seed data should remain unchanged.
+
+Write a detailed GitHub issue that:
+
+- Describes these compilation and runtime errors clearly,
+- Explains that the cause is backend queries and dependencies not matching the existing database schema,
+- Proposes a code-based solution (adjusting SQL queries and adding missing crates),
+- Includes example fixes or snippets,
+- And follows a structured format suitable for posting as a GitHub issue (with sections for description, cause, proposed fix, and testing).
