@@ -1,14 +1,5 @@
-[package]
-name = "hospital-system"
-version = "0.1.0"
-edition = "2021"
+pub mod connection;
+pub mod queries;
 
-[dependencies]
-actix-cors = "0.7"
-actix-web = "4.4"
-chrono = { version = "0.4", features = ["serde"] }
-dotenv = "0.15"
-serde = { version = "1.0", features = ["derive"] }
-serde_json = "1.0"
-sqlx = { version = "0.7", features = ["runtime-tokio-native-tls", "postgres", "chrono"] }
-tokio = { version = "1", features = ["full"] }
+pub use connection::{create_pool, DbPool};
+pub use queries::*;
