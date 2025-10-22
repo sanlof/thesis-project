@@ -84,6 +84,16 @@ Write a detailed GitHub issue that:
 
 _Prompt submitted with repository access granted to the AI._
 
+Design a minimal frontend architecture that integrates cleanly with the existing project. The frontend should serve only as a demo interface, focused primarily on data transfer and integration with the backend. Avoid adding any unnecessary features or UI complexity.
+
+The frontend should be built using **React with TypeScript**. No actual code implementation is required at this stage — only a detailed outline of how the frontend should be structured, including recommended file/folder organization, component layout, and integration points with the backend.
+
+Finally, add this proposed architecture and its explanation to the project’s **ARCHITECTURE.md** file, ensuring it fits cohesively with the existing documentation style and structure.
+
+## Prompt 3.2 (with Claude Sonnet 4.5)
+
+_Prompt submitted with repository access granted to the AI._
+
 Using this repo, create a series of AI prompts in order to generate code for the entire backend of this project.
 
 _See `frontend-prompts.md` for results._
