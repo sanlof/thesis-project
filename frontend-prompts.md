@@ -1,1040 +1,1290 @@
-# Frontend Code Generation Prompts
+# Frontend Build Prompts
 
-A comprehensive series of AI prompts to generate the complete frontend for the thesis project. These prompts build upon the existing backend infrastructure.
+A sequential series of AI prompts to build the complete frontend for the Police-Hospital system integration thesis project.
 
-## Phase 1: Shared Type Definitions & API Services
+## Overview
 
-### Prompt 1.1: Police System - Type Definitions
+These prompts are designed to be used in order with an AI coding assistant. Each prompt builds upon the previous one and references the project architecture and API documentation.
+
+**Important Context:**
+
+- Backend APIs are running on ports 8000 (Police) and 8001 (Hospital)
+- Complete API documentation is in `docs/API.md`
+- Architecture details are in `ARCHITECTURE.md`
+- The frontend should be a single unified application, not separate UIs
+
+---
+
+## Prompt 1: Project Setup & Configuration
 
 ```
-Create TypeScript type definitions for the Police System frontend.
-
-File: frontend/police-ui/src/types/suspect.ts
+I'm building a React + TypeScript frontend for a thesis project that demonstrates cross-database
+synchronization between a police system and hospital system.
 
 Requirements:
-- Define a Suspect interface matching the backend model:
-  - id: number
-  - full_name: string | null
-  - personal_id: string | null
-  - flag: boolean | null
+- Create a new Vite project in the `frontend/` directory
+- Use React 18+ with TypeScript
+- Configure Vite to run on port 5173
+- Set up Tailwind CSS for styling
+- Create a basic project structure with these folders:
+  - src/components/ (with subdirs: police/, hospital/, shared/, layout/)
+  - src/services/ (for API calls)
+  - src/hooks/ (for custom React hooks)
+  - src/context/ (for state management)
+  - src/utils/ (for helper functions)
+  - src/types/ (for TypeScript interfaces)
 
-- Define a CreateSuspect interface for POST requests (without id):
-  - full_name: string
-  - personal_id: string
-  - flag: boolean
+Create the initial setup including:
+1. package.json with all necessary dependencies (react, react-dom, typescript, axios, tailwind)
+2. vite.config.ts configured properly
+3. tsconfig.json with strict type checking
+4. tailwind.config.js
+5. .env.example with placeholders for VITE_POLICE_API_URL and VITE_HOSPITAL_API_URL
+6. Basic folder structure
+7. A simple index.html template
 
-- Define an UpdateSuspect interface for PUT requests:
-  - personal_id: string
-  - full_name?: string
-  - flag?: boolean
-
-- Export all interfaces
-- Add JSDoc comments explaining Swedish personal_id format (YYYYMMDD-XXXX)
+Make it production-ready with proper configuration.
 ```
 
-### Prompt 1.2: Hospital System - Type Definitions
+---
 
-```
-Create TypeScript type definitions for the Hospital System frontend.
+## Prompt 2: TypeScript Type Definitions
 
-File: frontend/hospital-ui/src/types/patient.ts
+````
+Based on the API documentation in docs/API.md, create comprehensive TypeScript type definitions
+in `src/types/index.ts`.
 
-Requirements:
-- Define a Patient interface matching the backend model:
-  - id: number
-  - full_name: string | null
-  - personal_id: string | null
-  - flag: boolean | null
+The API returns these data structures:
 
-- Define a CreatePatient interface for POST requests (without id):
-  - full_name: string
-  - personal_id: string
-  - flag: boolean
-
-- Define an UpdatePatient interface for PUT requests:
-  - personal_id: string
-  - full_name?: string
-  - flag?: boolean
-
-- Export all interfaces
-- Add JSDoc comments explaining Swedish personal_id format (YYYYMMDD-XXXX)
-
-Use the exact same structure as the Police System types for consistency.
-```
-
-### Prompt 1.3: Police System - API Configuration
-
-```
-Create the base API configuration file for the Police System.
-
-File: frontend/police-ui/src/services/api.ts
-
-Requirements:
-- Define BASE_URL constant: 'http://localhost:8000'
-- Create a helper function: handleResponse<T>(response: Response): Promise<T>
-  - Check if response.ok
-  - If not ok, parse error JSON and throw with message
-  - If ok, return response.json()
-  - Handle empty responses (204 No Content)
-
-- Create a helper function: apiRequest<T>(endpoint: string, options?: RequestInit): Promise<T>
-  - Prepend BASE_URL to endpoint
-  - Set default headers: 'Content-Type': 'application/json'
-  - Merge with provided options
-  - Call fetch and use handleResponse
-  - Include error handling with console.error
-
-- Export both helpers and BASE_URL
-- Use modern async/await syntax
-```
-
-### Prompt 1.4: Hospital System - API Configuration
-
-```
-Create the base API configuration file for the Hospital System.
-
-File: frontend/hospital-ui/src/services/api.ts
-
-Requirements:
-- Define BASE_URL constant: 'http://localhost:8001'
-- Create a helper function: handleResponse<T>(response: Response): Promise<T>
-  - Check if response.ok
-  - If not ok, parse error JSON and throw with message
-  - If ok, return response.json()
-  - Handle empty responses (204 No Content)
-
-- Create a helper function: apiRequest<T>(endpoint: string, options?: RequestInit): Promise<T>
-  - Prepend BASE_URL to endpoint
-  - Set default headers: 'Content-Type': 'application/json'
-  - Merge with provided options
-  - Call fetch and use handleResponse
-  - Include error handling with console.error
-
-- Export both helpers and BASE_URL
-- Use the exact same structure as the Police System for consistency
-```
-
-### Prompt 1.5: Police System - Suspects API Service
-
-```
-Create the API service for suspect operations in the Police System.
-
-File: frontend/police-ui/src/services/suspects.ts
-
-Requirements:
-Import types from '../types/suspect' and apiRequest from './api'
-
-Implement these async functions:
-
-1. getAllSuspects(): Promise<Suspect[]>
-   - GET /suspects
-
-2. getSuspectById(id: number): Promise<Suspect>
-   - GET /suspects/{id}
-
-3. getSuspectByPersonalId(personalId: string): Promise<Suspect>
-   - GET /suspects/personal/{personalId}
-
-4. createSuspect(suspect: CreateSuspect): Promise<Suspect>
-   - POST /suspects
-   - Body: JSON.stringify(suspect)
-
-5. updateSuspect(id: number, suspect: UpdateSuspect): Promise<Suspect>
-   - PUT /suspects/{id}
-   - Body: JSON.stringify(suspect)
-
-6. deleteSuspect(id: number): Promise<void>
-   - DELETE /suspects/{id}
-
-7. updateFlag(personalId: string, flag: boolean): Promise<Suspect>
-   - PUT /suspects/{personalId}/flag
-   - Body: JSON.stringify({ flag })
-
-- Use apiRequest helper for all requests
-- Include proper HTTP methods and bodies
-- Add error handling with meaningful messages
-- Export all functions
-```
-
-### Prompt 1.6: Hospital System - Patients API Service
-
-```
-Create the API service for patient operations in the Hospital System.
-
-File: frontend/hospital-ui/src/services/patients.ts
-
-Requirements:
-Import types from '../types/patient' and apiRequest from './api'
-
-Implement these async functions:
-
-1. getAllPatients(): Promise<Patient[]>
-   - GET /patients
-
-2. getPatientById(id: number): Promise<Patient>
-   - GET /patients/{id}
-
-3. getPatientByPersonalId(personalId: string): Promise<Patient>
-   - GET /patients/personal/{personalId}
-
-4. createPatient(patient: CreatePatient): Promise<Patient>
-   - POST /patients
-   - Body: JSON.stringify(patient)
-
-5. updatePatient(id: number, patient: UpdatePatient): Promise<Patient>
-   - PUT /patients/{id}
-   - Body: JSON.stringify(patient)
-
-6. deletePatient(id: number): Promise<void>
-   - DELETE /patients/{id}
-
-7. getFlaggedPatients(): Promise<Patient[]>
-   - GET /patients/flagged
-
-- Use apiRequest helper for all requests
-- Include proper HTTP methods and bodies
-- Add error handling with meaningful messages
-- Export all functions
-- Use the same pattern as the Police System service
-```
-
-### Prompt 1.7: Police System - Shared Data API Service
-
-```
-Create the API service for inter-system communication in the Police System.
-
-File: frontend/police-ui/src/services/shared.ts
-
-Requirements:
-Import Patient type from '../types/patient' and apiRequest from './api'
-
-Note: Define a simple Patient type inline if you don't have access to hospital types:
-interface Patient {
-  id: number;
-  full_name: string | null;
-  personal_id: string | null;
-  flag: boolean | null;
+**Suspect (from Police API):**
+```json
+{
+  "id": 1,
+  "full_name": "Erik Andersson",
+  "personal_id": "19850312-2398",
+  "flag": false
 }
+````
 
-Implement these async functions:
+**Patient (from Hospital API):**
 
-1. getPatientFromHospital(personalId: string): Promise<Patient>
-   - GET to hospital system: http://localhost:8001/api/shared/patients/{personalId}
-   - This queries the hospital database from the police UI
-
-2. getAllPatientsFromHospital(): Promise<Patient[]>
-   - GET to hospital system: http://localhost:8001/api/shared/patients
-   - Returns all hospital patients
-
-3. getFlaggedPatientsFromHospital(): Promise<Patient[]>
-   - GET to hospital system: http://localhost:8001/api/shared/patients/flagged
-   - Returns patients flagged by police
-
-- Use fetch directly with full URLs (not apiRequest since it's cross-system)
-- Include proper error handling
-- Add comments explaining these are cross-system queries
-- Export all functions
-```
-
-### Prompt 1.8: Hospital System - Shared Data API Service
-
-```
-Create the API service for inter-system communication in the Hospital System.
-
-File: frontend/hospital-ui/src/services/shared.ts
-
-Requirements:
-Import Suspect type from '../types/suspect' (define inline if needed)
-
-Define a simple Suspect type inline:
-interface Suspect {
-  id: number;
-  full_name: string | null;
-  personal_id: string | null;
-  flag: boolean | null;
+```json
+{
+  "id": 1,
+  "full_name": "Erik Andersson",
+  "personal_id": "19850312-2398",
+  "flag": false
 }
+```
 
-Implement these async functions:
+Create interfaces for:
 
-1. getSuspectFromPolice(personalId: string): Promise<Suspect>
-   - GET to police system: http://localhost:8000/api/shared/suspects/{personalId}
-   - This queries the police database from the hospital UI
+1. Suspect (with all fields, making appropriate ones optional based on API responses)
+2. Patient (with all fields, making appropriate ones optional)
+3. CreateSuspect (for POST requests - no id field)
+4. CreatePatient (for POST requests - no id field)
+5. UpdateSuspect (for PUT requests - personal_id required, others optional)
+6. UpdatePatient (for PUT requests - personal_id required, others optional)
+7. FlagUpdate (for flag update requests)
+8. ApiError (for error responses)
+9. HealthResponse (for health check endpoints)
 
-2. getAllSuspectsFromPolice(): Promise<Suspect[]>
-   - GET to police system: http://localhost:8000/api/shared/suspects
-   - Returns all police suspects
+Also create a type for LoadingState and add any utility types needed.
 
-- Use fetch directly with full URLs (not apiRequest since it's cross-system)
-- Include proper error handling
-- Add comments explaining these are cross-system queries
-- Export all functions
-- Use the same pattern as the Police System shared service
+Make sure all types are properly exported and well-documented with JSDoc comments.
+
 ```
 
 ---
 
-## Phase 2: Reusable Components
-
-### Prompt 2.1: Police System - Suspect List Component
+## Prompt 3: API Service Layer - Base Configuration
 
 ```
-Create a reusable component for displaying a list of suspects.
 
-File: frontend/police-ui/src/components/SuspectList.tsx
+Create the base API configuration and utilities in `src/services/api.ts`.
 
 Requirements:
-- Props:
-  - suspects: Suspect[]
-  - onEdit: (suspect: Suspect) => void
-  - onDelete: (id: number) => void
-  - onToggleFlag: (personalId: string, currentFlag: boolean) => void
 
-- Display suspects in a clean table with columns:
-  - ID
-  - Full Name
-  - Personal ID
-  - Flag Status (show badge: 🚩 if flagged)
-  - Actions (Edit, Delete, Toggle Flag buttons)
+1. Import axios
+2. Read API URLs from environment variables (VITE_POLICE_API_URL, VITE_HOSPITAL_API_URL)
+3. Create two axios instances:
+   - policeApi (for http://localhost:8000)
+   - hospitalApi (for http://localhost:8001)
+4. Configure both with:
+   - Default headers (Content-Type: application/json)
+   - Timeout of 10 seconds
+   - Request interceptor to log all outgoing requests (in development)
+   - Response interceptor to handle errors globally
+5. Create a generic error handler that:
+   - Logs errors to console
+   - Formats error messages from API responses
+   - Returns a consistent error object
+6. Export both axios instances and the error handler
 
-- Styling:
-  - Use inline styles or className for basic styling
-  - Make flagged rows visually distinct (e.g., light red background)
-  - Buttons should be clearly labeled
-  - Table should be responsive
+Use TypeScript with proper typing for all functions.
 
-- Handle empty state: "No suspects found"
-- Add hover effects on table rows
-- Make it clean and professional looking
-- Export as default
-```
-
-### Prompt 2.2: Police System - Suspect Form Component
-
-```
-Create a form component for creating/editing suspects.
-
-File: frontend/police-ui/src/components/SuspectForm.tsx
-
-Requirements:
-- Props:
-  - suspect?: Suspect (optional, for edit mode)
-  - onSubmit: (data: CreateSuspect | UpdateSuspect) => void
-  - onCancel: () => void
-
-- Form fields:
-  - Full Name (text input, required)
-  - Personal ID (text input, required, pattern: YYYYMMDD-XXXX)
-  - Flag (checkbox)
-
-- Features:
-  - If suspect prop provided, populate form (edit mode)
-  - If no suspect prop, empty form (create mode)
-  - Validate Swedish personal ID format
-  - Show validation errors inline
-  - Disable submit button while submitting
-
-- Styling:
-  - Clean, modern form layout
-  - Labels above inputs
-  - Proper spacing
-  - Clear submit/cancel buttons
-
-- Handle form submission with preventDefault
-- Clear form after successful submission (create mode)
-- Export as default
-```
-
-### Prompt 2.3: Hospital System - Patient List Component
-
-```
-Create a reusable component for displaying a list of patients.
-
-File: frontend/hospital-ui/src/components/PatientList.tsx
-
-Requirements:
-- Props:
-  - patients: Patient[]
-  - onEdit: (patient: Patient) => void
-  - onDelete: (id: number) => void
-  - showPoliceCheck?: boolean (optional, default false)
-
-- Display patients in a clean table with columns:
-  - ID
-  - Full Name
-  - Personal ID
-  - Flag Status (show badge: 🚩 if flagged, with note "Flagged by Police")
-  - Actions (Edit, Delete buttons)
-  - Optional: Check Police Records button (if showPoliceCheck is true)
-
-- Styling:
-  - Use inline styles or className for basic styling
-  - Make flagged rows visually distinct (e.g., light yellow background)
-  - Buttons should be clearly labeled
-  - Table should be responsive
-
-- Handle empty state: "No patients found"
-- Add hover effects on table rows
-- Make it clean and professional looking
-- Export as default
-- Use similar structure to Police SuspectList for consistency
-```
-
-### Prompt 2.4: Hospital System - Patient Form Component
-
-```
-Create a form component for creating/editing patients.
-
-File: frontend/hospital-ui/src/components/PatientForm.tsx
-
-Requirements:
-- Props:
-  - patient?: Patient (optional, for edit mode)
-  - onSubmit: (data: CreatePatient | UpdatePatient) => void
-  - onCancel: () => void
-
-- Form fields:
-  - Full Name (text input, required)
-  - Personal ID (text input, required, pattern: YYYYMMDD-XXXX)
-  - Flag (checkbox, disabled with note: "Managed by Police System")
-
-- Features:
-  - If patient prop provided, populate form (edit mode)
-  - If no patient prop, empty form (create mode)
-  - Validate Swedish personal ID format
-  - Show validation errors inline
-  - Disable submit button while submitting
-  - Flag field should be disabled - explain it's auto-synced from police
-
-- Styling:
-  - Clean, modern form layout
-  - Labels above inputs
-  - Proper spacing
-  - Clear submit/cancel buttons
-  - Disabled flag field should be visually distinct
-
-- Handle form submission with preventDefault
-- Clear form after successful submission (create mode)
-- Export as default
-- Use similar structure to Police SuspectForm for consistency
-```
-
-### Prompt 2.5: Police System - Data Request Component
-
-```
-Create a component for requesting data from the hospital system.
-
-File: frontend/police-ui/src/components/DataRequest.tsx
-
-Requirements:
-- No props needed (self-contained component)
-
-- Features:
-  - Input field for Personal ID
-  - "Check Hospital Records" button
-  - Display results in a card below input
-  - Show loading state while fetching
-  - Handle not found (404) gracefully: "No hospital records found"
-  - Handle errors: "Error checking hospital records"
-
-- Display hospital patient data if found:
-  - Full Name
-  - Personal ID
-  - Flag Status
-  - Message: "This person has hospital records"
-
-- Use getPatientFromHospital from services/shared
-
-- Styling:
-  - Clean card layout
-  - Input and button in a row
-  - Results card appears below
-  - Success: green border
-  - Not found: blue border with info icon
-  - Error: red border with error icon
-
-- Add proper TypeScript types
-- Export as default
-```
-
-### Prompt 2.6: Hospital System - Data Request Component
-
-```
-Create a component for requesting data from the police system.
-
-File: frontend/hospital-ui/src/components/DataRequest.tsx
-
-Requirements:
-- No props needed (self-contained component)
-
-- Features:
-  - Input field for Personal ID
-  - "Check Police Records" button
-  - Display results in a card below input
-  - Show loading state while fetching
-  - Handle not found (404) gracefully: "No police records found"
-  - Handle errors: "Error checking police records"
-
-- Display police suspect data if found:
-  - Full Name
-  - Personal ID
-  - Flag Status
-  - Warning message if flagged: "⚠️ This person has active police records"
-
-- Use getSuspectFromPolice from services/shared
-
-- Styling:
-  - Clean card layout
-  - Input and button in a row
-  - Results card appears below
-  - Found & flagged: red/orange border with warning
-  - Found & not flagged: yellow border with info
-  - Not found: green border with checkmark
-  - Error: red border with error icon
-
-- Add proper TypeScript types
-- Export as default
-- Use similar structure to Police DataRequest
 ```
 
 ---
 
-## Phase 3: Main Application Components
-
-### Prompt 3.1: Police System - Main App Component
+## Prompt 4: Police System API Service
 
 ```
-Create the main App component for the Police System.
 
-File: frontend/police-ui/src/App.tsx
+Create `src/services/policeApi.ts` with all API functions for the police system.
 
-Requirements:
-- State management:
-  - suspects: Suspect[]
-  - loading: boolean
-  - error: string | null
-  - editingSuspect: Suspect | null
-  - showForm: boolean
+Based on docs/API.md, implement these functions:
 
-- Fetch suspects on component mount using getAllSuspects()
-- Implement handlers:
-  - handleCreate(data: CreateSuspect)
-  - handleUpdate(id: number, data: UpdateSuspect)
-  - handleDelete(id: number)
-  - handleToggleFlag(personalId: string, currentFlag: boolean)
-  - handleEdit(suspect: Suspect) - opens form in edit mode
-  - handleCancelEdit() - closes form
+**Suspect Management:**
 
-- Layout:
-  - Header: "🚔 Police System"
-  - "Add New Suspect" button (toggles form)
-  - DataRequest component (for checking hospital records)
-  - SuspectForm (conditional, shown when showForm is true)
-  - SuspectList (always shown)
-  - Loading state
-  - Error state
+- `getAllSuspects()` - GET /suspects - Returns Promise<Suspect[]>
+- `getSuspectById(id: number)` - GET /suspects/{id} - Returns Promise<Suspect>
+- `getSuspectByPersonalId(personalId: string)` - GET /suspects/personal/{personalId} - Returns Promise<Suspect>
+- `createSuspect(data: CreateSuspect)` - POST /suspects - Returns Promise<Suspect>
+- `updateSuspect(id: number, data: UpdateSuspect)` - PUT /suspects/{id} - Returns Promise<Suspect>
+- `deleteSuspect(id: number)` - DELETE /suspects/{id} - Returns Promise<void>
 
-- After any mutation (create/update/delete/flag), refetch suspects list
-- Use existing App.css for styling
-- Add toast/alert messages for success/error (simple window.alert for now)
-- Import all necessary services and components
-- Export as default
-```
+**Flag Management:**
 
-### Prompt 3.2: Hospital System - Main App Component
+- `updateSuspectFlag(personalId: string, flag: boolean)` - PUT /suspects/{personalId}/flag - Returns Promise<Suspect>
 
-```
-Create the main App component for the Hospital System.
+**Cross-System Queries:**
 
-File: frontend/hospital-ui/src/App.tsx
+- `queryPatientRecord(personalId: string)` - GET /api/shared/patients/{personalId} - Returns Promise<Patient | null>
+- `getAllSharedPatients()` - GET /api/shared/patients - Returns Promise<Patient[]>
+- `getFlaggedPatients()` - GET /api/shared/patients/flagged - Returns Promise<Patient[]>
 
-Requirements:
-- State management:
-  - patients: Patient[]
-  - loading: boolean
-  - error: string | null
-  - editingPatient: Patient | null
-  - showForm: boolean
-  - showFlaggedOnly: boolean (toggle for filtering)
+**Health Check:**
 
-- Fetch patients on component mount using getAllPatients()
-- Implement handlers:
-  - handleCreate(data: CreatePatient)
-  - handleUpdate(id: number, data: UpdatePatient)
-  - handleDelete(id: number)
-  - handleEdit(patient: Patient) - opens form in edit mode
-  - handleCancelEdit() - closes form
-  - handleToggleFlaggedFilter() - toggles showFlaggedOnly
+- `checkHealth()` - GET /health - Returns Promise<HealthResponse>
 
-- Layout:
-  - Header: "🏥 Hospital System"
-  - "Add New Patient" button (toggles form)
-  - "Show Flagged Only" toggle switch
-  - DataRequest component (for checking police records)
-  - PatientForm (conditional, shown when showForm is true)
-  - PatientList (filtered by showFlaggedOnly)
-  - Loading state
-  - Error state
+Use the policeApi instance from api.ts. Add proper error handling for all functions.
+Handle 404 responses gracefully by returning null instead of throwing.
+Add JSDoc comments for each function.
 
-- Filter displayed patients based on showFlaggedOnly flag
-- After any mutation (create/update/delete), refetch patients list
-- Use existing App.css for styling
-- Add toast/alert messages for success/error (simple window.alert for now)
-- Import all necessary services and components
-- Export as default
-- Use similar structure to Police App for consistency
 ```
 
 ---
 
-## Phase 4: Styling Improvements
-
-### Prompt 4.1: Police System - Enhanced CSS
+## Prompt 5: Hospital System API Service
 
 ```
-Update the CSS for the Police System with modern, professional styling.
 
-File: frontend/police-ui/src/App.css
+Create `src/services/hospitalApi.ts` with all API functions for the hospital system.
 
-Requirements:
-- Update existing styles to be more modern
-- Add styles for:
-  - Table (suspects-table): clean borders, hover effects, alternating row colors
-  - Form (suspect-form): card-style with shadow, proper input styling
-  - Buttons: primary (blue), secondary (gray), danger (red)
-  - Loading spinner
-  - Error message box (red background, white text)
-  - Success message box (green background, white text)
-  - Badge for flag status (small red badge with "Flagged")
-  - Data request card (border, shadow, clean layout)
+Based on docs/API.md, implement these functions:
 
-- Color scheme:
-  - Primary: #1a237e (dark blue - already in header)
-  - Success: #2e7d32 (green)
-  - Warning: #f57c00 (orange)
-  - Danger: #c62828 (red)
-  - Gray: #757575
+**Patient Management:**
 
-- Use modern CSS:
-  - Flexbox/Grid for layouts
-  - Box shadows for depth
-  - Smooth transitions
-  - Responsive design (min-width breakpoints)
+- `getAllPatients()` - GET /patients - Returns Promise<Patient[]>
+- `getPatientById(id: number)` - GET /patients/{id} - Returns Promise<Patient>
+- `getPatientByPersonalId(personalId: string)` - GET /patients/personal/{personalId} - Returns Promise<Patient>
+- `getFlaggedPatients()` - GET /patients/flagged - Returns Promise<Patient[]>
+- `createPatient(data: CreatePatient)` - POST /patients - Returns Promise<Patient>
+- `updatePatient(id: number, data: UpdatePatient)` - PUT /patients/{id} - Returns Promise<Patient>
+- `deletePatient(id: number)` - DELETE /patients/{id} - Returns Promise<void>
 
-- Keep it clean and not over-designed
-- Maintain existing header styling
-```
+**Cross-System Queries:**
 
-### Prompt 4.2: Hospital System - Enhanced CSS
+- `querySuspectRecord(personalId: string)` - GET /api/shared/suspects/{personalId} - Returns Promise<Suspect | null>
+- `getAllSharedSuspects()` - GET /api/shared/suspects - Returns Promise<Suspect[]>
 
-```
-Update the CSS for the Hospital System with modern, professional styling.
+**Health Check:**
 
-File: frontend/hospital-ui/src/App.css
+- `checkHealth()` - GET /health - Returns Promise<HealthResponse>
 
-Requirements:
-- Update existing styles to be more modern
-- Add styles for:
-  - Table (patients-table): clean borders, hover effects, alternating row colors
-  - Form (patient-form): card-style with shadow, proper input styling
-  - Buttons: primary (red), secondary (gray), danger (dark red)
-  - Loading spinner
-  - Error message box (red background, white text)
-  - Success message box (green background, white text)
-  - Info message box (blue background, white text)
-  - Badge for flag status (small red badge with "Flagged by Police")
-  - Data request card (border, shadow, clean layout)
-  - Toggle switch for "Show Flagged Only" filter
+Use the hospitalApi instance from api.ts. Add proper error handling for all functions.
+Handle 404 responses gracefully by returning null instead of throwing.
+Add JSDoc comments for each function.
 
-- Color scheme:
-  - Primary: #c62828 (red - already in header)
-  - Success: #2e7d32 (green)
-  - Warning: #f57c00 (orange)
-  - Info: #1976d2 (blue)
-  - Gray: #757575
-
-- Use modern CSS:
-  - Flexbox/Grid for layouts
-  - Box shadows for depth
-  - Smooth transitions
-  - Responsive design (min-width breakpoints)
-
-- Keep it clean and not over-designed
-- Maintain existing header styling
-- Use similar structure to Police CSS for consistency
 ```
 
 ---
 
-## Phase 5: Documentation & Testing
-
-### Prompt 5.1: Create Frontend README
+## Prompt 6: Validation Utilities
 
 ```
-Create a comprehensive README for the frontend setup and usage.
 
-File: docs/FRONTEND.md
+Create `src/utils/validation.ts` with validation functions for Swedish personal IDs.
 
 Requirements:
-- Title: "Frontend Development Guide"
-- Sections:
 
-1. **Overview**
-   - Brief description of both UIs
-   - Technology stack (React, TypeScript)
-   - Port numbers (3000 for police, 3001 for hospital)
+1. Create a function `validateSwedishPersonalId(personalId: string): boolean`
 
-2. **Prerequisites**
-   - Node.js 18+
-   - npm
-   - Backend services running
+   - Format should be: YYYYMMDD-XXXX
+   - Total length: 13 characters
+   - First 8 characters must be digits (YYYYMMDD)
+   - Character 9 must be a hyphen (-)
+   - Last 4 characters must be digits (XXXX)
+   - Return true if valid, false otherwise
 
-3. **Installation**
-   - Step-by-step for both systems
-   - npm install commands
-   - Note about ports
+2. Create a function `formatPersonalId(personalId: string): string`
 
-4. **Running the Applications**
-   - npm start commands
-   - How to run both simultaneously
-   - Expected output
+   - Takes a personal ID (with or without hyphen)
+   - Returns it in the standard format YYYYMMDD-XXXX
+   - If already formatted, return as-is
+   - If only 12 digits, insert hyphen after position 8
 
-5. **Project Structure**
-   - Explanation of folder structure
-   - Key files and their purposes
-   - Services vs Components
+3. Create a function `isAdult(personalId: string): boolean`
 
-6. **Features**
-   - Police System features list
-   - Hospital System features list
-   - Inter-system communication features
+   - Extracts birth date from personal ID
+   - Returns true if person is 18 or older
 
-7. **API Integration**
-   - How services connect to backend
-   - Error handling approach
-   - CORS considerations
+4. Add comprehensive error handling and input validation
+5. Add unit test examples in comments for each function
+6. Export all functions
 
-8. **Development Tips**
-   - Hot reload
-   - Debugging in browser
-   - Common issues and solutions
+Use TypeScript with proper typing.
 
-9. **Testing**
-   - Manual testing checklist
-   - Expected behaviors
-   - How to verify inter-system communication
-
-10. **Future Enhancements**
-    - Authentication/Authorization UI
-    - Better error handling with toast notifications
-    - Form validation improvements
-    - Loading state improvements
-    - Responsive design enhancements
-
-Make it clear, professional, and easy to follow.
-```
-
-### Prompt 5.2: Create Frontend Testing Checklist
-
-```
-Create a comprehensive testing checklist for the frontend.
-
-File: docs/FRONTEND-TESTING.md
-
-Requirements:
-- Title: "Frontend Testing Checklist"
-- Sections:
-
-1. **Prerequisites**
-   - Backend services must be running
-   - Databases must be seeded
-   - Both frontends must be running
-
-2. **Police System Tests**
-   - Load application (http://localhost:3000)
-   - View suspects list
-   - Create new suspect
-   - Edit existing suspect
-   - Delete suspect
-   - Toggle flag (and verify auto-sync to hospital)
-   - Check hospital records via DataRequest
-   - Validate form validation works
-   - Test error states
-
-3. **Hospital System Tests**
-   - Load application (http://localhost:3001)
-   - View patients list
-   - Create new patient
-   - Edit existing patient
-   - Delete patient
-   - View flagged patients only (filter)
-   - Check police records via DataRequest
-   - Verify flags are read-only
-   - Test error states
-
-4. **Inter-System Communication Tests**
-   - Flag a suspect in police system
-   - Verify flag appears immediately in hospital system
-   - Check hospital records from police UI
-   - Check police records from hospital UI
-   - Test with non-existent personal_id (should show "not found")
-
-5. **Browser Testing**
-   - Chrome
-   - Firefox
-   - Safari
-   - Responsive design (mobile/tablet/desktop)
-
-6. **Error Scenario Tests**
-   - Backend service down
-   - Invalid personal_id format
-   - Network errors
-   - Duplicate personal_id
-
-7. **Performance Tests**
-   - Load time for lists
-   - Responsiveness of actions
-   - Memory leaks (open DevTools)
-
-8. **User Experience Tests**
-   - Forms are intuitive
-   - Error messages are clear
-   - Success feedback is visible
-   - Loading states are shown
-   - Buttons are clearly labeled
-
-Include expected results for each test. Make it practical and easy to follow.
-```
-
-### Prompt 5.3: Create Frontend Development Troubleshooting Guide
-
-```
-Create a troubleshooting guide for common frontend issues.
-
-File: docs/FRONTEND-TROUBLESHOOTING.md
-
-Requirements:
-- Title: "Frontend Troubleshooting Guide"
-- Sections:
-
-1. **Installation Issues**
-   - npm install fails
-   - Dependency conflicts
-   - Node version mismatch
-
-2. **Runtime Issues**
-   - Port already in use
-   - Cannot connect to backend (CORS errors)
-   - Backend service not running
-   - Blank page on load
-
-3. **API Issues**
-   - 404 Not Found errors
-   - 500 Internal Server Error
-   - Network request failed
-   - CORS policy errors
-
-4. **TypeScript Issues**
-   - Type errors in services
-   - Missing type definitions
-   - Import errors
-
-5. **React Issues**
-   - Component not updating
-   - State not persisting
-   - useEffect infinite loop
-   - Event handlers not firing
-
-6. **Styling Issues**
-   - CSS not loading
-   - Styles not applying
-   - Layout broken
-   - Responsive design issues
-
-7. **Data Synchronization Issues**
-   - Flag not syncing between systems
-   - Stale data in UI
-   - Refresh needed to see changes
-
-8. **Browser Console Errors**
-   - Common error messages and solutions
-   - How to use browser DevTools
-   - Network tab inspection
-
-For each issue, provide:
-- Symptom
-- Likely cause
-- Solution
-- Prevention tips
-
-Make it practical with copy-paste commands where applicable.
 ```
 
 ---
 
-## Phase 6: Enhancements (Optional)
-
-### Prompt 6.1: Add Loading Spinner Component
+## Prompt 7: Formatting Utilities
 
 ```
-Create a reusable loading spinner component for both systems.
 
-File: frontend/police-ui/src/components/LoadingSpinner.tsx
-File: frontend/hospital-ui/src/components/LoadingSpinner.tsx
+Create `src/utils/formatting.ts` with data formatting helper functions.
 
 Requirements:
-- No props needed
-- Display a CSS-only loading spinner
-- Center it on the page
-- Use system colors (blue for police, red for hospital)
-- Add text below spinner: "Loading..."
-- Make it smooth animation
-- Export as default
 
-Create two identical files with different colors.
+1. `formatDate(date: string | Date): string`
+
+   - Formats dates to Swedish format (YYYY-MM-DD)
+   - Handles both string and Date inputs
+
+2. `formatDateTime(date: string | Date): string`
+
+   - Formats to Swedish datetime format (YYYY-MM-DD HH:mm)
+
+3. `formatPersonName(fullName: string | null | undefined): string`
+
+   - Handles null/undefined gracefully
+   - Returns "Unnamed" for empty values
+   - Properly capitalizes names
+
+4. `getInitials(fullName: string): string`
+
+   - Extracts initials from full name (e.g., "Erik Andersson" -> "EA")
+
+5. `getFlagStatusText(flag: boolean | null | undefined): string`
+
+   - Returns "Flagged" for true
+   - Returns "Not Flagged" for false
+   - Returns "Unknown" for null/undefined
+
+6. `getFlagStatusColor(flag: boolean | null | undefined): string`
+   - Returns Tailwind color classes
+   - "text-red-600" for flagged
+   - "text-green-600" for not flagged
+   - "text-gray-400" for unknown
+
+Export all functions with TypeScript types and JSDoc comments.
+
 ```
 
-### Prompt 6.2: Add Toast Notification Component
+---
+
+## Prompt 8: Application Context Provider
 
 ```
-Create a simple toast notification component to replace window.alert.
 
-Files:
-- frontend/police-ui/src/components/Toast.tsx
-- frontend/hospital-ui/src/components/Toast.tsx
+Create `src/context/AppContext.tsx` for global state management using React Context API.
 
 Requirements:
-- Props:
-  - message: string
-  - type: 'success' | 'error' | 'info'
-  - onClose: () => void
 
-- Features:
-  - Auto-dismiss after 3 seconds
-  - Manual close button
-  - Slide in animation from top
-  - Different colors based on type
-  - Fixed position at top-center of screen
+1. Create an AppContext that manages:
 
-- Use useEffect for auto-dismiss timer
-- Clear timeout on unmount
-- Export as default
+   - Police data (suspects: Suspect[], loading: boolean, error: string | null)
+   - Hospital data (patients: Patient[], flaggedPatients: Patient[], loading: boolean, error: string | null)
+   - Sync status (lastSyncTime: Date | null, syncStatus: 'idle' | 'syncing' | 'success' | 'error')
 
-Then update App.tsx files to use Toast instead of window.alert.
+2. Create an AppProvider component that:
+
+   - Provides initial state
+   - Includes methods to update each part of the state
+   - Handles loading and error states properly
+
+3. Include these methods in the context:
+
+   - `refreshPoliceData()` - Fetches all suspects
+   - `refreshHospitalData()` - Fetches all patients and flagged patients
+   - `refreshAll()` - Refreshes both systems
+   - `updateSyncStatus(status)` - Updates synchronization status
+   - `setPoliceLoading(loading: boolean)` - Updates police loading state
+   - `setHospitalLoading(loading: boolean)` - Updates hospital loading state
+   - `setPoliceError(error: string | null)` - Updates police error state
+   - `setHospitalError(error: string | null)` - Updates hospital error state
+
+4. Create a custom hook `useAppContext()` that:
+
+   - Returns the context
+   - Throws an error if used outside the provider
+
+5. Use TypeScript with proper typing for all state and methods
+6. Add JSDoc comments explaining the context structure
+
+The provider should wrap the entire app and make this data available to all components.
+
 ```
 
-### Prompt 6.3: Add Search/Filter Component
+---
+
+## Prompt 9: Custom Hook - usePoliceData
 
 ```
-Create a search and filter component for suspect/patient lists.
 
-Files:
-- frontend/police-ui/src/components/SearchFilter.tsx
-- frontend/hospital-ui/src/components/SearchFilter.tsx
+Create `src/hooks/usePoliceData.ts` - a custom hook for managing police system data.
 
 Requirements:
-- Props:
-  - onSearch: (query: string) => void
-  - onFilterFlag: (showFlagged: boolean | null) => void
 
-- Features:
-  - Search input (searches by name or personal_id)
-  - Filter dropdown: All | Flagged | Not Flagged
-  - Clear filters button
-  - Debounce search input (300ms)
+1. Import necessary services from policeApi.ts
+2. Import useAppContext to access global state
+3. Return an object with:
 
-- Styling:
-  - Horizontal layout
-  - Clean, modern design
-  - Proper spacing
+   **State:**
 
-- Use useState for local input state
-- Use useEffect for debouncing
-- Export as default
+   - suspects: Suspect[]
+   - loading: boolean
+   - error: string | null
 
-Then update App.tsx to integrate search/filter functionality.
+   **Methods:**
+
+   - `fetchSuspects()` - Loads all suspects
+   - `fetchSuspectById(id: number)` - Gets single suspect
+   - `fetchSuspectByPersonalId(personalId: string)` - Gets suspect by personal ID
+   - `createSuspect(data: CreateSuspect)` - Creates new suspect
+   - `updateSuspect(id: number, data: UpdateSuspect)` - Updates suspect
+   - `deleteSuspect(id: number)` - Deletes suspect
+   - `updateFlag(personalId: string, flag: boolean)` - Updates flag and refreshes data
+   - `queryPatient(personalId: string)` - Queries hospital for patient record
+
+4. Each method should:
+
+   - Set loading state to true before the API call
+   - Handle errors gracefully and update error state
+   - Set loading to false after completion
+   - Update the global context state after successful operations
+
+5. Include a `useEffect` that automatically fetches suspects on mount
+
+6. Add proper TypeScript typing and error handling
+7. Add JSDoc comments for each method
+
+This hook should be the primary way components interact with police data.
+
 ```
+
+---
+
+## Prompt 10: Custom Hook - useHospitalData
+
+```
+
+Create `src/hooks/useHospitalData.ts` - a custom hook for managing hospital system data.
+
+Requirements:
+
+1. Import necessary services from hospitalApi.ts
+2. Import useAppContext to access global state
+3. Return an object with:
+
+   **State:**
+
+   - patients: Patient[]
+   - flaggedPatients: Patient[]
+   - loading: boolean
+   - error: string | null
+
+   **Methods:**
+
+   - `fetchPatients()` - Loads all patients
+   - `fetchFlaggedPatients()` - Loads only flagged patients
+   - `fetchPatientById(id: number)` - Gets single patient
+   - `fetchPatientByPersonalId(personalId: string)` - Gets patient by personal ID
+   - `createPatient(data: CreatePatient)` - Creates new patient
+   - `updatePatient(id: number, data: UpdatePatient)` - Updates patient
+   - `deletePatient(id: number)` - Deletes patient
+   - `querySuspect(personalId: string)` - Queries police for suspect record
+
+4. Each method should:
+
+   - Set loading state to true before the API call
+   - Handle errors gracefully and update error state
+   - Set loading to false after completion
+   - Update the global context state after successful operations
+
+5. Include a `useEffect` that automatically fetches patients and flagged patients on mount
+
+6. Add proper TypeScript typing and error handling
+7. Add JSDoc comments for each method
+
+This hook should be the primary way components interact with hospital data.
+
+```
+
+---
+
+## Prompt 11: Custom Hook - useFlagSync
+
+```
+
+Create `src/hooks/useFlagSync.ts` - a hook for monitoring flag synchronization between systems.
+
+Requirements:
+
+1. Use polling to check for flag synchronization status
+2. Compare flags between police suspects and hospital patients with matching personal_ids
+3. Return an object with:
+
+   **State:**
+
+   - `syncedRecords`: Array of { personalId: string, isSynced: boolean, policeFlag: boolean, hospitalFlag: boolean }
+   - `outOfSync`: number (count of records where flags don't match)
+   - `lastChecked`: Date | null
+   - `isChecking`: boolean
+
+   **Methods:**
+
+   - `checkSync()` - Manually trigger a synchronization check
+   - `startPolling(intervalMs: number)` - Start automatic polling
+   - `stopPolling()` - Stop automatic polling
+
+4. The hook should:
+
+   - Fetch both suspects and patients
+   - Match records by personal_id
+   - Compare flag values
+   - Identify any mismatches (which shouldn't happen due to database triggers, but good to verify)
+   - Default to checking every 5 seconds
+
+5. Use TypeScript with proper interfaces for the return object
+6. Add cleanup in useEffect to stop polling when component unmounts
+7. Add JSDoc comments explaining the synchronization logic
+
+This hook helps visualize that the automatic database synchronization is working.
+
+```
+
+---
+
+## Prompt 12: Layout Component - Header
+
+```
+
+Create `src/components/layout/Header.tsx` - the main application header.
+
+Requirements:
+
+1. Display the application title "Police-Hospital System Integration"
+2. Show system status indicators:
+   - Police System (green dot if healthy, red if error, gray if loading)
+   - Hospital System (green dot if healthy, red if error, gray if loading)
+3. Display last sync time from AppContext
+4. Show a sync status indicator (idle/syncing/success/error)
+5. Include a manual "Refresh All" button that calls refreshAll() from context
+6. Make it responsive (stack on mobile, inline on desktop)
+7. Use Tailwind CSS for styling with a professional look:
+
+   - Dark blue background (#1a237e) for police theme
+   - Clean white text
+   - Status dots with proper colors
+   - Smooth transitions
+
+8. Use TypeScript with proper typing
+9. Import and use the useAppContext hook
+10. Add a useEffect to check health of both systems every 30 seconds
+
+The header should be fixed at the top and always visible.
+
+```
+
+---
+
+## Prompt 13: Layout Component - SystemPanel
+
+```
+
+Create `src/components/layout/SystemPanel.tsx` - a reusable container for each system's view.
+
+Requirements:
+
+1. Accept these props:
+
+   - title: string (e.g., "Police System" or "Hospital System")
+   - icon: string (emoji like "🚔" or "🏥")
+   - color: "police" | "hospital" (determines color scheme)
+   - children: ReactNode (the content to display)
+   - loading: boolean (shows loading spinner)
+   - error: string | null (displays error message if present)
+
+2. Render a card-style panel with:
+
+   - Title bar with icon and title
+   - Color-coded left border (blue for police, red for hospital)
+   - Content area that displays children
+   - Loading overlay when loading is true
+   - Error message display when error is present
+   - Refresh button that can be passed as a callback prop
+
+3. Use Tailwind CSS with:
+
+   - Rounded corners
+   - Shadow for depth
+   - Smooth transitions
+   - Responsive sizing
+   - Clean typography
+
+4. Use TypeScript with proper prop interfaces
+5. Make it fully reusable for both police and hospital panels
+
+This component provides consistent styling across both system views.
+
+```
+
+---
+
+## Prompt 14: Shared Component - PersonCard
+
+```
+
+Create `src/components/shared/PersonCard.tsx` - a reusable card for displaying person information.
+
+Requirements:
+
+1. Accept these props:
+
+   - person: Suspect | Patient (using a union type or generic)
+   - type: "suspect" | "patient"
+   - onViewDetails?: (id: number) => void (optional callback)
+   - onEdit?: (id: number) => void (optional callback)
+   - onDelete?: (id: number) => void (optional callback)
+   - onToggleFlag?: (personalId: string, currentFlag: boolean) => void (optional callback)
+   - showActions?: boolean (default true)
+
+2. Display:
+
+   - Full name (large, bold)
+   - Personal ID (Swedish format with validation)
+   - Flag status (badge - red if flagged, green if not)
+   - ID number (small, gray)
+   - Action buttons (if showActions is true)
+
+3. Style with Tailwind:
+
+   - Card layout with hover effect
+   - Color-coded left border based on type (blue for suspect, red for patient)
+   - Flag badge with appropriate colors
+   - Action buttons with icons (use emojis: 👁️ 📝 🗑️ 🚩)
+   - Responsive layout (stack on mobile)
+
+4. Handle all callbacks properly with null checks
+5. Use the formatting utilities for name and personal ID
+6. Use TypeScript with proper typing
+7. Add accessibility attributes (aria-labels)
+
+This is the primary component for displaying person records throughout the app.
+
+```
+
+---
+
+## Prompt 15: Shared Component - SyncIndicator
+
+```
+
+Create `src/components/shared/SyncIndicator.tsx` - a visual indicator for flag synchronization status.
+
+Requirements:
+
+1. Use the useFlagSync hook to get synchronization data
+2. Accept these props:
+
+   - autoRefresh?: boolean (default true - whether to poll automatically)
+   - refreshInterval?: number (default 5000ms)
+
+3. Display:
+
+   - Total synced records count
+   - Out of sync records count (should be 0 if working correctly)
+   - Last checked timestamp
+   - Visual sync status (animated when checking)
+   - List of any out-of-sync records (if any exist - for debugging)
+
+4. Visual states:
+
+   - All synced: Green checkmark ✅ "All flags synchronized"
+   - Checking: Blue spinner 🔄 "Checking synchronization..."
+   - Out of sync: Red warning ⚠️ "X records out of sync"
+   - Error: Red X ❌ "Sync check failed"
+
+5. Include a manual "Check Now" button
+6. Show last checked time in relative format ("2 seconds ago", "1 minute ago")
+7. Use Tailwind for styling with smooth animations
+8. Add a details section that can be expanded to show sync details for each record
+
+9. Use TypeScript with proper typing
+10. Add polling cleanup on unmount
+
+This component helps verify that the automatic database synchronization is working as expected.
+
+```
+
+---
+
+## Prompt 16: Police Component - SuspectList
+
+```
+
+Create `src/components/police/SuspectList.tsx` - displays all suspects in a list/grid.
+
+Requirements:
+
+1. Use the usePoliceData hook to get suspects
+2. Display suspects using the PersonCard component
+3. Include:
+
+   - Search/filter by name or personal ID
+   - Sort options (by name, by personal ID, by flag status)
+   - Filter by flag status (All / Flagged / Not Flagged)
+   - Grid layout (responsive: 1 column mobile, 2-3 columns desktop)
+
+4. Show:
+
+   - Total count of suspects
+   - Count of flagged suspects
+   - Loading state
+   - Error state
+   - Empty state (when no suspects)
+
+5. Wire up PersonCard callbacks:
+
+   - onViewDetails: Show detailed view (can be a modal or separate component)
+   - onEdit: Open edit form
+   - onDelete: Confirm and delete suspect
+   - onToggleFlag: Update flag and show success message
+
+6. Add a "Create New Suspect" button at the top
+7. Use Tailwind for styling
+8. Include proper TypeScript typing
+9. Add smooth transitions for list updates
+10. Show a toast/notification when operations succeed or fail
+
+This is the main view for the police system.
+
+```
+
+---
+
+## Prompt 17: Police Component - SuspectForm
+
+```
+
+Create `src/components/police/SuspectForm.tsx` - form for creating/editing suspects.
+
+Requirements:
+
+1. Accept these props:
+
+   - mode: "create" | "edit"
+   - suspect?: Suspect (for edit mode)
+   - onSubmit: (data: CreateSuspect | UpdateSuspect) => Promise<void>
+   - onCancel: () => void
+
+2. Form fields:
+
+   - Full Name (text input, required)
+   - Personal ID (text input with validation, required)
+   - Flag status (checkbox, default false)
+
+3. Validation:
+
+   - Full name: Required, at least 2 characters
+   - Personal ID: Required, must match Swedish format (use validateSwedishPersonalId)
+   - Show validation errors inline
+
+4. Features:
+
+   - Real-time validation as user types
+   - Disable submit button while submitting
+   - Show loading spinner during submission
+   - Auto-format personal ID on blur
+   - Clear form after successful creation
+   - Populate form in edit mode
+
+5. Style with Tailwind:
+
+   - Clean form layout
+   - Clear labels
+   - Input focus states
+   - Error message styling
+   - Primary button (blue for police theme)
+   - Cancel button (gray)
+
+6. Use React Hook Form or controlled components
+7. Use TypeScript with proper typing
+8. Add accessibility attributes
+9. Handle success/error from onSubmit callback
+
+This form handles both creating new suspects and editing existing ones.
+
+```
+
+---
+
+## Prompt 18: Police Component - FlagControl
+
+```
+
+Create `src/components/police/FlagControl.tsx` - dedicated interface for flagging/unflagging suspects.
+
+Requirements:
+
+1. Use the usePoliceData hook
+2. Display a search interface to find suspects by personal ID
+3. When a suspect is found:
+
+   - Show their details (name, personal ID, current flag status)
+   - Display a prominent toggle button to change flag status
+   - Show the current flag status clearly (large badge)
+   - Include a confirmation dialog when flagging/unflagging
+
+4. After flag update:
+
+   - Show success message with animation
+   - Display a note: "Flag automatically synchronized to hospital system"
+   - Show before/after flag status
+   - Provide a link to check the hospital record
+
+5. Include a section showing:
+
+   - Recent flag changes (last 5 operations)
+   - Total flagged suspects count
+   - Quick actions to flag/unflag multiple suspects
+
+6. Style with Tailwind:
+
+   - Large, clear toggle switch or button
+   - Color-coded flag status (red = flagged, green = not flagged)
+   - Visual feedback for sync confirmation
+   - Professional card layout
+
+7. Use TypeScript with proper typing
+8. Add sound/visual confirmation when flag is updated (optional)
+9. Show loading state during API call
+
+This component makes the core flag synchronization feature prominent and easy to use.
+
+```
+
+---
+
+## Prompt 19: Hospital Component - PatientList
+
+```
+
+Create `src/components/hospital/PatientList.tsx` - displays all patients in a list/grid.
+
+Requirements:
+
+1. Use the useHospitalData hook to get patients
+2. Display patients using the PersonCard component
+3. Include:
+
+   - Search/filter by name or personal ID
+   - Sort options (by name, by personal ID, by flag status)
+   - Filter by flag status (All / Flagged / Not Flagged)
+   - Grid layout (responsive: 1 column mobile, 2-3 columns desktop)
+
+4. Show:
+
+   - Total count of patients
+   - Count of flagged patients (with note: "Flagged by police system")
+   - Loading state
+   - Error state
+   - Empty state (when no patients)
+
+5. Wire up PersonCard callbacks:
+
+   - onViewDetails: Show detailed view
+   - onEdit: Open edit form
+   - onDelete: Confirm and delete patient
+   - onToggleFlag: Disabled (with tooltip explaining flags are managed by police)
+
+6. Add a "Register New Patient" button at the top
+7. Highlight flagged patients visually (red border or badge)
+8. Use Tailwind for styling
+9. Include proper TypeScript typing
+10. Show a notification banner if any flagged patients exist
+
+This is the main view for the hospital system.
+
+```
+
+---
+
+## Prompt 20: Hospital Component - PatientForm
+
+```
+
+Create `src/components/hospital/PatientForm.tsx` - form for creating/editing patients.
+
+Requirements:
+
+1. Accept these props:
+
+   - mode: "create" | "edit"
+   - patient?: Patient (for edit mode)
+   - onSubmit: (data: CreatePatient | UpdatePatient) => Promise<void>
+   - onCancel: () => void
+
+2. Form fields:
+
+   - Full Name (text input, required)
+   - Personal ID (text input with validation, required)
+   - Flag status (display only, not editable - show note: "Managed by police system")
+
+3. Validation:
+
+   - Full name: Required, at least 2 characters
+   - Personal ID: Required, must match Swedish format
+   - Show validation errors inline
+
+4. Features:
+
+   - Real-time validation as user types
+   - Disable submit button while submitting
+   - Show loading spinner during submission
+   - Auto-format personal ID on blur
+   - Clear form after successful creation
+   - Populate form in edit mode
+   - Check if patient exists in police system (show warning if they're a flagged suspect)
+
+5. Style with Tailwind:
+
+   - Clean form layout
+   - Clear labels
+   - Input focus states
+   - Error message styling
+   - Primary button (red for hospital theme)
+   - Cancel button (gray)
+   - Warning banner if flagged in police system
+
+6. Use React Hook Form or controlled components
+7. Use TypeScript with proper typing
+8. Add accessibility attributes
+
+This form handles both registering new patients and editing existing ones.
+
+```
+
+---
+
+## Prompt 21: Hospital Component - FlaggedPatients
+
+```
+
+Create `src/components/hospital/FlaggedPatients.tsx` - dedicated view for flagged patients.
+
+Requirements:
+
+1. Use the useHospitalData hook to get flagged patients
+2. Display a prominent list of all flagged patients
+3. For each flagged patient show:
+
+   - Full name and personal ID
+   - Flag status badge (always red/flagged)
+   - When they were flagged (if available)
+   - Option to view their full details
+   - Option to check their police record
+
+4. Include:
+
+   - Total count of flagged patients
+   - Filter/search by name or personal ID
+   - Sort by name or personal ID
+   - Export to CSV button (optional)
+
+5. Add an information banner at the top explaining:
+
+   - "These patients are automatically flagged by the police system"
+   - "Flags cannot be changed from the hospital interface"
+   - "Flag changes sync instantly from police database"
+
+6. Provide action buttons:
+
+   - "Check Police Record" - queries the police system for details
+   - "View Patient Details" - shows full patient information
+   - "Refresh" - manually refresh the flagged list
+
+7. Style with Tailwind:
+
+   - Alert/warning aesthetic (red theme)
+   - Clear badges and status indicators
+   - Professional table or card layout
+   - Responsive design
+
+8. Use TypeScript with proper typing
+9. Show empty state if no flagged patients
+10. Add real-time refresh (poll every 10 seconds)
+
+This component helps hospital staff monitor flagged individuals.
+
+```
+
+---
+
+## Prompt 22: Shared Component - CrossSystemQuery
+
+```
+
+Create `src/components/shared/CrossSystemQuery.tsx` - interface for querying one system from another.
+
+Requirements:
+
+1. Accept these props:
+
+   - system: "police" | "hospital" (which system to query from)
+   - oppositeSystem: "hospital" | "police" (which system to query)
+
+2. UI Elements:
+
+   - Input field for Swedish personal ID
+   - "Search" button
+   - Results display area
+   - Loading state
+   - Error handling
+
+3. When police queries hospital:
+
+   - Use querySuspectRecord from usePoliceData
+   - Show "Check if suspect has hospital records"
+   - Display patient details if found
+   - Show "No hospital record found" if not found
+
+4. When hospital queries police:
+
+   - Use queryPatient from useHospitalData
+   - Show "Check if patient has police record"
+   - Display suspect details if found (including flag status)
+   - Show "No police record found" if not found
+   - If flagged suspect found, show warning banner
+
+5. Display results using PersonCard component
+6. Include:
+
+   - Personal ID validation before search
+   - Search history (last 5 queries)
+   - "Search Another" button after results
+   - Clear results button
+
+7. Style with Tailwind:
+
+   - Search bar with icon
+   - Results card with appropriate colors
+   - Warning styling if flagged suspect found
+   - Loading skeleton
+
+8. Use TypeScript with proper typing
+9. Add helpful tooltips explaining cross-system queries
+
+This component demonstrates the inter-system communication capability.
+
+```
+
+---
+
+## Prompt 23: Main App Component
+
+```
+
+Create `src/App.tsx` - the main application component that brings everything together.
+
+Requirements:
+
+1. Import all necessary components and providers
+2. Wrap the entire app with AppProvider from AppContext
+3. Create a layout with:
+
+   - Header component at the top (fixed)
+   - Two-panel layout for Police and Hospital systems (side-by-side on desktop, stacked on mobile)
+   - Footer with project info
+
+4. Left Panel (Police System):
+
+   - SystemPanel component with "police" color
+   - Tabs or sections for:
+     - SuspectList (default view)
+     - FlagControl
+     - CrossSystemQuery (querying hospital)
+   - Display police data loading/error states
+
+5. Right Panel (Hospital System):
+
+   - SystemPanel component with "hospital" color
+   - Tabs or sections for:
+     - PatientList (default view)
+     - FlaggedPatients
+     - CrossSystemQuery (querying police)
+   - Display hospital data loading/error states
+
+6. Include:
+
+   - SyncIndicator component (floating or in a dedicated section)
+   - Global error boundary
+   - Loading states for initial data fetch
+   - Responsive layout (panels stack on mobile)
+
+7. Add a simple tab/section navigation within each panel
+8. Use Tailwind for layout (grid or flexbox)
+9. Use TypeScript with proper typing
+10. Include comments explaining the structure
+
+The App should be clean, professional, and demonstrate all key features of the system.
+
+```
+
+---
+
+## Prompt 24: Global Styles & Theme
+
+```
+
+Create `src/index.css` with global styles and Tailwind configuration.
+
+Requirements:
+
+1. Import Tailwind base, components, and utilities
+2. Define CSS custom properties (variables) for:
+
+   - Police theme colors (blues: primary, secondary, light)
+   - Hospital theme colors (reds: primary, secondary, light)
+   - Success color (green)
+   - Error color (red)
+   - Warning color (yellow)
+   - Neutral colors (grays)
+
+3. Add global styles for:
+
+   - Body (font, background, margins)
+   - Headings (h1-h6 with appropriate sizes)
+   - Links (color, hover states)
+   - Buttons (base styles)
+   - Forms (inputs, labels, error messages)
+   - Cards (consistent padding, shadows, borders)
+   - Transitions (smooth animations)
+
+4. Define utility classes:
+
+   - .police-theme (blue color scheme)
+   - .hospital-theme (red color scheme)
+   - .flag-badge (styled badge for flag status)
+   - .status-dot (colored dot for status indicators)
+   - .loading-spinner (animated spinner)
+   - .error-message (styled error display)
+   - .success-message (styled success display)
+
+5. Add responsive breakpoints that match common screen sizes
+6. Include print styles (optional)
+7. Add smooth scroll behavior
+8. Style scrollbars (webkit)
+
+Make the design professional, clean, and accessible.
+
+```
+
+---
+
+## Prompt 25: Environment Configuration & Main Entry
+
+```
+
+Create the final configuration files:
+
+1. **src/main.tsx** - Application entry point
+
+   - Import React and ReactDOM
+   - Import App component
+   - Import index.css
+   - Use ReactDOM.createRoot
+   - Wrap App in React.StrictMode
+   - Mount to div#root
+   - Add error boundary for top-level errors
+
+2. **.env.example** - Template for environment variables
+
+   ```
+   VITE_POLICE_API_URL=http://localhost:8000
+   VITE_HOSPITAL_API_URL=http://localhost:8001
+   VITE_POLL_INTERVAL=5000
+   VITE_DEBUG_MODE=false
+   ```
+
+3. **.env** - Actual environment file (copy from .env.example)
+
+   - Same content as .env.example
+   - This file should be in .gitignore
+
+4. Update **README.md** in frontend directory with:
+
+   - Project description
+   - Installation instructions (`npm install`)
+   - Development command (`npm run dev`)
+   - Build command (`npm run build`)
+   - Environment variables explanation
+   - Port information (frontend: 5173, police API: 8000, hospital API: 8001)
+   - Links to backend documentation
+
+5. Create **.env.local** file for local overrides (optional)
+
+6. Add error boundary component in case of crashes
+
+Make sure all environment variables are properly prefixed with VITE\_ and are accessible via import.meta.env.
+
+```
+
+---
+
+## Prompt 26: Testing & Polish
+
+```
+
+Final polish and testing utilities:
+
+1. Create `src/utils/testHelpers.ts` with:
+
+   - Mock data generators (generateMockSuspect, generateMockPatient)
+   - API response mocks for testing
+   - Helper functions for testing components
+
+2. Add a development mode feature flag check
+3. Add console logging only in development mode
+4. Create a `src/config/constants.ts` file with:
+
+   - API endpoints
+   - Polling intervals
+   - Validation rules
+   - UI constants (max items per page, etc.)
+
+5. Add PropTypes or improve TypeScript strictness
+6. Add loading skeletons for better UX during data fetching
+7. Add toast notifications for user feedback (success/error messages)
+8. Implement optimistic updates where appropriate
+
+9. Create a simple error boundary component for graceful error handling
+
+10. Add keyboard shortcuts for power users:
+
+    - Ctrl/Cmd + K: Focus search
+    - Ctrl/Cmd + N: Create new record
+    - Ctrl/Cmd + R: Refresh data
+    - Escape: Close modals/forms
+
+11. Add accessibility improvements:
+
+    - ARIA labels
+    - Keyboard navigation
+    - Focus management
+    - Screen reader support
+
+12. Performance optimizations:
+    - React.memo for expensive components
+    - useMemo for expensive calculations
+    - useCallback for stable function references
+    - Lazy loading for routes (if implementing routing)
+
+Document all features in code comments.
+
+````
+
+---
 
 ## Usage Instructions
 
-Run prompts sequentially by phase:
+### How to Use These Prompts
 
-Phase 1: Type definitions and API services (foundation)
-Phase 2: Reusable components
-Phase 3: Main application components
-Phase 4: Styling improvements
-Phase 5: Documentation
-Phase 6: Optional enhancements
+1. **Sequential Execution**: Use these prompts in order, as each builds upon previous work
+2. **Context**: Always provide the AI with access to ARCHITECTURE.md and docs/API.md
+3. **Iteration**: Review each generated component and refine as needed
+4. **Testing**: Test each component individually before moving to the next
+5. **Integration**: After all components are built, test the entire application
 
-Test after each phase:
+### Starting the Development Process
 
-After Phase 1: Test API services in browser console
-After Phase 2: Test individual components
-After Phase 3: Test complete applications
-After Phase 4: Verify styling
-After Phase 5: Follow testing checklist
+```bash
+# 1. Ensure backend is running
+cd backend/police-system && cargo run  # Terminal 1
+cd backend/hospital-system && cargo run  # Terminal 2
 
-Critical dependencies:
+# 2. Start with Prompt 1 to set up the project
+# 3. Work through prompts 2-26 sequentially
+# 4. After frontend is complete, start the dev server
+cd frontend && npm run dev  # Terminal 3
 
-Backend must be running before testing frontend
-Complete Phase 1 before Phase 2
-Complete Phase 2 before Phase 3
-Phase 4-6 can be done in any order after Phase 3
+# 5. Access the application at http://localhost:5173
+````
 
-Installation after code generation:
+### Verification Checklist
 
-```
-   # Install dependencies for both systems
-   cd frontend/police-ui
-   npm install
+After completing all prompts, verify:
 
-   cd ../hospital-ui
-   npm install
-```
+- [ ] Frontend runs without errors
+- [ ] Can view suspects and patients
+- [ ] Can create new records
+- [ ] Can update existing records
+- [ ] Can delete records
+- [ ] Flag updates in police system show in hospital system
+- [ ] Cross-system queries work (hospital queries police, police queries hospital)
+- [ ] SyncIndicator shows all records are synchronized
+- [ ] Forms validate Swedish personal IDs correctly
+- [ ] Responsive design works on mobile and desktop
+- [ ] Error states display correctly
+- [ ] Loading states display correctly
+- [ ] All TypeScript types are properly defined
 
-Running both applications:
+### Additional Resources
 
-```
-   # Terminal 1 - Police UI
-   cd frontend/police-ui
-   npm start
+- **Backend API Documentation**: `docs/API.md`
+- **Architecture Overview**: `ARCHITECTURE.md`
+- **Database Setup**: `docs/psql-guide.md`
+- **Backend Testing**: `docs/TESTING.md`
 
-   # Terminal 2 - Hospital UI
-   cd frontend/hospital-ui
-   npm start
-```
+### Common Issues & Solutions
 
-Verification:
+**Issue**: Environment variables not loading
 
-Police UI: http://localhost:3000
-Hospital UI: http://localhost:3001
-Both should load without errors
-Check browser console for any issues
+- Solution: Ensure variables are prefixed with `VITE_`
+- Restart dev server after changing .env
 
-## Expected Final State
+**Issue**: CORS errors
 
-After completing all prompts:
+- Solution: Backend CORS is configured for localhost:5173, verify backend is running
 
-* Complete Police System UI with CRUD operations
-* Complete Hospital System UI with CRUD operations
-* Inter-system data requests working
-* Flag synchronization visible in UI
-* Clean, professional design
-* Type-safe TypeScript throughout
-* Proper error handling
-* Loading states
-* Form validation
-* Responsive design
-* Comprehensive documentation
-* Testing checklist
-* Troubleshooting guide
+**Issue**: API calls failing
+
+- Solution: Check backend services are running on ports 8000 and 8001
+
+**Issue**: TypeScript errors
+
+- Solution: Ensure all types are properly imported and exported
+
+---
 
 ## Notes
 
-* All prompts are designed for AI assistants (Claude, GPT-4, etc.)
-* Each prompt is self-contained with full context
-* Prompts specify exact file paths
-* TypeScript strict mode is assumed
-* React 18+ features (no class components)
-* Functional components with hooks only
-* No external UI libraries (Material-UI, etc.) - keep it simple
-* CORS must be configured in backend for cross-origin requests
+- These prompts assume you're using an AI that can read your project files
+- Some prompts may need adjustment based on specific requirements
+- Feel free to modify components after generation
+- Add additional features as needed for your thesis
+- Consider adding routing (React Router) if you want separate pages
+- Consider adding authentication in the future
+- The focus is on demonstrating cross-system synchronization, not production deployment
+
+---
+
+**Total Prompts**: 26
+**Estimated Time**: 4-8 hours for complete implementation
+**Difficulty**: Intermediate to Advanced
+**Technologies**: React, TypeScript, Vite, Tailwind CSS, Axios
+
+Good luck with your thesis project! 🎓
