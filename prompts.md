@@ -94,6 +94,6 @@ Finally, add this proposed architecture and its explanation to the project’s *
 
 _Prompt submitted with repository access granted to the AI._
 
-Using this repo, create a series of AI prompts in order to generate code for the entire backend of this project.
+Using this repo, create a series of AI prompts in order to generate code for the entire frontend of this project.
 
 _See `frontend-prompts.md` for results._
