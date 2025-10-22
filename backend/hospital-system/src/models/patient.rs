@@ -1,13 +1,11 @@
-use serde::{Deserialize, Serialize};
-use sqlx::FromRow;
+use serde::{Serialize, Deserialize};
 
-/// Main Patient struct representing a record in the patients table
-#[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Patient {
     pub id: i32,
-    pub full_name: String,
-    pub personal_id: String, // Swedish format: YYYYMMDD-XXXX
-    pub flag: bool,
+    pub full_name: Option<String>,
+    pub personal_id: Option<String>,
+    pub flag: Option<bool>,
 }
 
 /// Struct for creating a new patient (POST requests)

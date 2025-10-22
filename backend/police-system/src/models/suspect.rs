@@ -1,13 +1,11 @@
 use serde::{Deserialize, Serialize};
-use sqlx::FromRow;
 
-/// Main Suspect struct representing a record in the suspects table
-#[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
+#[derive(Debug, Serialize, Deserialize, sqlx::FromRow)]
 pub struct Suspect {
     pub id: i32,
-    pub full_name: String,
-    pub personal_id: String, // Swedish format: YYYYMMDD-XXXX
-    pub flag: bool,
+    pub full_name: Option<String>,
+    pub personal_id: Option<String>,
+    pub flag: Option<bool>,
 }
 
 /// Struct for creating a new suspect (POST requests)
