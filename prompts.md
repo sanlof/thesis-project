@@ -94,6 +94,6 @@ Finally, add this proposed architecture and its explanation to the project’s *
 
 _Prompt submitted with repository access granted to the AI._
 
-Using this repo, create a series of AI prompts in order to generate code for the entire frontend of this project.
+Using this repository — including the architecture.md file for guidance on structure and design — create a detailed sequence of AI prompts that will generate the complete frontend code for this project. Each prompt should focus on a specific part of the frontend (e.g., layout setup, routing, UI components, API integration, and state management) and ensure alignment with the backend endpoints and architecture defined in the repo. The goal is to produce a frontend consistent with the overall system architecture.
 
 _See `frontend-prompts.md` for results._
