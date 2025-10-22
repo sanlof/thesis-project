@@ -150,9 +150,9 @@ SQL files for database setup:
 │  │  - Flag ctrl  │  - Flagged list   │  │
 │  │  - Query hosp │  - Query police   │  │
 │  └───────────────────────────────────┘  │
-│         │                    │           │
-│      Axios API Services                  │
-└─────────┼────────────────────┼───────────┘
+│         │                    │          │
+│      Axios API Services                 │
+└─────────┼────────────────────┼──────────┘
           │                    │
           │ HTTP REST          │ HTTP REST
           ▼                    ▼
@@ -171,12 +171,12 @@ SQL files for database setup:
            │ postgres_fdw           │
            │ (Foreign Data Wrapper) │
            ▼                        │
-    ┌──────────────────────┐       │
-    │   PostgreSQL Setup   │       │
-    ├──────────────────────┤       │
-    │  police_db           │       │
-    │  ├─ suspects table   │       │
-    │  └─ patients (FDW)   │◄──────┘
+    ┌──────────────────────┐        │
+    │   PostgreSQL Setup   │        │
+    ├──────────────────────┤        │
+    │  police_db           │        │
+    │  ├─ suspects table   │        │
+    │  └─ patients (FDW)   │◄───────┘
     │                      │
     │  hospital_db         │
     │  └─ patients table   │
