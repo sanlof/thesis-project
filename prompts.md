@@ -77,3 +77,13 @@ Write a detailed GitHub issue that:
 - Proposes a code-based solution (adjusting SQL queries and adding missing crates),
 - Includes example fixes or snippets,
 - And follows a structured format suitable for posting as a GitHub issue (with sections for description, cause, proposed fix, and testing).
+
+# 3 - Building the Frontend
+
+## Prompt 3.1 (with Claude Sonnet 4.5)
+
+_Prompt submitted with repository access granted to the AI._
+
+Using this repo, create a series of AI prompts in order to generate code for the entire backend of this project.
+
+_See `frontend-prompts.md` for results._
