@@ -167,8 +167,6 @@ frontend/
 │   └── components/
 │       ├── PoliceData.tsx
 │       ├── HospitalData.tsx
-│       ├── FlaggedPatients.tsx
-│       └── CrossReference.tsx (optional)
 └── node_modules/
 ```
 ### Key Points
