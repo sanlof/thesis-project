@@ -2,10 +2,12 @@
 
 Here's a series of prompts to generate a minimal frontend for your police-hospital system. Use these prompts sequentially with an AI assistant.
 
+_Prompts submitted with repository access granted to the AI._
+
 ## Prompt 1: Project Setup
 
 ```
-Create a minimal React + TypeScript frontend project structure for displaying data from two backend APIs (police system on port 8000 and hospital system on port 8001).
+Using this repository, create a minimal React + TypeScript frontend project structure for displaying data from two backend APIs (police system on port 8000 and hospital system on port 8001).
 
 Requirements:
 - Use Vite as the build tool for simplicity
@@ -111,6 +113,7 @@ Generate the complete updated `src/App.tsx` file.
 ---
 
 ## Usage Instructions
+
 After generating all files with these prompts:
 
 1. Install dependencies:
@@ -121,16 +124,19 @@ npm install
 ```
 
 2. Start backend services first:
+
 ```
 # Terminal 1 - Police System
 cd backend/police-system
 cargo run
 ```
+
 ```
 # Terminal 2 - Hospital System
 cd backend/hospital-system
 cargo run
 ```
+
 3. Start frontend:
 
 ```
@@ -146,6 +152,7 @@ npm run dev
 ## Expected File Structure
 
 After running all prompts, you should have:
+
 ```
 frontend/
 ├── package.json
@@ -162,14 +169,15 @@ frontend/
 │       ├── HospitalData.tsx
 └── node_modules/
 ```
+
 ### Key Points
 
-* No styling: All components use plain HTML elements
-* No CRUD: Components only fetch and display data (GET requests only)
-* No forms: No user input or data modification
-* No routing: Single page application with all data visible at once
-* Type-safe: TypeScript ensures data structures match backend
-* Minimal dependencies: Only React, ReactDOM, TypeScript, and Vite
-* CORS-friendly: Backend already has CORS enabled for localhost
+- No styling: All components use plain HTML elements
+- No CRUD: Components only fetch and display data (GET requests only)
+- No forms: No user input or data modification
+- No routing: Single page application with all data visible at once
+- Type-safe: TypeScript ensures data structures match backend
+- Minimal dependencies: Only React, ReactDOM, TypeScript, and Vite
+- CORS-friendly: Backend already has CORS enabled for localhost
 
 This approach gives you a functional, barebones UI that displays your backend data with zero complexity.
