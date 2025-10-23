@@ -84,16 +84,22 @@ Write a detailed GitHub issue that:
 
 _Prompt submitted with repository access granted to the AI._
 
-Design a minimal frontend architecture that integrates cleanly with the existing project. The frontend should serve only as a demo interface, focused primarily on data transfer and integration with the backend. Avoid adding any unnecessary features or UI complexity.
+Using this repository as context, generate a series of AI prompts that will produce a minimal frontend for the project.
 
-The frontend should be built using **React with TypeScript**. No actual code implementation is required at this stage — only a detailed outline of how the frontend should be structured, including recommended file/folder organization, component layout, and integration points with the backend.
+Requirements:
 
-Finally, add this proposed architecture and its explanation to the project’s **ARCHITECTURE.md** file, ensuring it fits cohesively with the existing documentation style and structure.
+- The frontend should only fetch and display data from the police and hospital databases via the existing backend API endpoints in the repository.
+- Display this data in simple HTML tables without styling (no css, no frameworks, no advanced UI).
+- Exclude any CRUD functionality, authentication, routing, forms, or interactive features.
+- The generated code should be as lightweight and dependency-free as possible, using only TypeScript and React.
+- Ensure endpoint URLs and data structures match the backend routes defined in the repository.
 
-## Prompt 3.2 (with Claude Sonnet 4.5)
+Include prompts that:
 
-_Prompt submitted with repository access granted to the AI._
+- Set up the basic frontend structure (i.e. index.html).
+- Fetch and display police data.
+- Fetch and display hospital data.
 
-Using this repository — including the architecture.md file for guidance on structure and design — create a detailed sequence of AI prompts that will generate the complete frontend code for this project. Each prompt should focus on a specific part of the frontend (e.g., layout setup, routing, UI components, API integration, and state management) and ensure alignment with the backend endpoints and architecture defined in the repo. The goal is to produce a frontend consistent with the overall system architecture.
+Goal: Produce a barebones, functional UI that simply renders backend data in tabular format — nothing more.
 
 _See `frontend-prompts.md` for results._
