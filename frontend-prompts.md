@@ -27,8 +27,6 @@ Generate:
 The dev server should run on port 3000 and proxy API requests to avoid CORS issues.
 ```
 
----
-
 ## Prompt 2: TypeScript Type Definitions
 
 ```
@@ -55,8 +53,6 @@ Generate a file `src/types.ts` that exports these interfaces:
 Note: All fields except id can be null based on the backend models.
 ```
 
----
-
 ## Prompt 3: Police Data Component
 
 ```
@@ -75,8 +71,6 @@ Requirements:
 
 Generate the complete component in `src/components/PoliceData.tsx`.
 ```
-
----
 
 ## Prompt 4: Hospital Data Component
 
@@ -97,8 +91,6 @@ Requirements:
 Generate the complete component in `src/components/HospitalData.tsx`.
 ```
 
----
-
 ## Prompt 5: Main App Component
 
 ```
@@ -116,6 +108,7 @@ Requirements:
 Generate the complete updated `src/App.tsx` file.
 ```
 
+---
 
 ## Usage Instructions
 After generating all files with these prompts:
