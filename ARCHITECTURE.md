@@ -1,157 +1,149 @@
-# Project Structure Overview
+# Project Architecture
+
+A thesis project demonstrating secure data sharing between IT systems using PostgreSQL Foreign Data Wrapper (FDW) for automatic flag synchronization between police and hospital databases.
+
+## Table of Contents
+
+- [Project Overview](#project-overview)
+- [Project Structure](#project-structure)
+- [Technology Stack](#technology-stack)
+- [Architecture Diagram](#architecture-diagram)
+- [Backend Architecture](#backend-architecture)
+- [Frontend Architecture](#frontend-architecture)
+- [Database Architecture](#database-architecture)
+- [Implementation Status](#implementation-status)
+- [Security Considerations](#security-considerations)
+
+---
+
+## Project Overview
+
+This project demonstrates a proof-of-concept system for secure data sharing between two independent organizations (police and hospital) while maintaining data sovereignty. The key innovation is using PostgreSQL's Foreign Data Wrapper to enable automatic flag synchronization at the database level, eliminating the need for complex API-level coordination.
+
+**Key Features:**
+
+- Independent backend services for police and hospital systems
+- Automatic flag synchronization via database triggers
+- Cross-system data queries through shared API endpoints
+- React frontend for data visualization
+- Swedish personal ID format (YYYYMMDD-XXXX) for identity management
+
+---
+
+## Project Structure
 
 ```
 thesis-project/
 ├── backend/
-│   ├── police-system/                     # Police backend service
+│   ├── police-system/                  # Police backend service (Rust/Actix)
 │   │   ├── src/
-│   │   │   ├── main.rs                    # Application entry point
-│   │   │   ├── api/                       # REST API endpoints
+│   │   │   ├── main.rs                # Application entry point
+│   │   │   ├── api/                   # REST API endpoints
 │   │   │   │   ├── mod.rs
-│   │   │   │   ├── suspects.rs            # Suspect management endpoints
-│   │   │   │   └── shared.rs              # Inter-system API endpoints
-│   │   │   ├── models/                    # Data structures
+│   │   │   │   ├── suspects.rs        # Suspect CRUD operations
+│   │   │   │   └── shared.rs          # Inter-system API
+│   │   │   ├── models/                # Data structures
 │   │   │   │   ├── mod.rs
 │   │   │   │   └── suspect.rs
-│   │   │   └── database/                  # Database layer
+│   │   │   └── database/              # Database layer
 │   │   │       ├── mod.rs
-│   │   │       ├── connection.rs          # PostgreSQL connection pool
-│   │   │       └── queries.rs             # SQL queries
-│   │   ├── Cargo.toml                     # Rust dependencies
-│   │   └── .env.example                   # Environment configuration template
+│   │   │       ├── connection.rs      # PostgreSQL connection pool
+│   │   │       └── queries.rs         # SQL queries
+│   │   ├── Cargo.toml                 # Rust dependencies
+│   │   └── .env.example               # Environment configuration
 │   │
-│   └── hospital-system/                   # Hospital backend service
+│   └── hospital-system/                # Hospital backend service (Rust/Actix)
 │       ├── src/
-│       │   ├── main.rs                    # Application entry point
-│       │   ├── api/                       # REST API endpoints
+│       │   ├── main.rs                # Application entry point
+│       │   ├── api/                   # REST API endpoints
 │       │   │   ├── mod.rs
-│       │   │   ├── patients.rs            # Patient management endpoints
-│       │   │   └── shared.rs              # Inter-system API endpoints
-│       │   ├── models/                    # Data structures
+│       │   │   ├── patients.rs        # Patient CRUD operations
+│       │   │   └── shared.rs          # Inter-system API
+│       │   ├── models/                # Data structures
 │       │   │   ├── mod.rs
 │       │   │   └── patient.rs
-│       │   └── database/                  # Database layer
+│       │   └── database/              # Database layer
 │       │       ├── mod.rs
-│       │       ├── connection.rs          # PostgreSQL connection pool
-│       │       └── queries.rs             # SQL queries
-│       ├── Cargo.toml                     # Rust dependencies
-│       └── .env.example                   # Environment configuration template
+│       │       ├── connection.rs      # PostgreSQL connection pool
+│       │       └── queries.rs         # SQL queries
+│       ├── Cargo.toml                 # Rust dependencies
+│       └── .env.example               # Environment configuration
 │
-├── frontend/                              # React + TypeScript demo interface
-│   ├── public/
-│   │   └── index.html                     # HTML template
+├── frontend/                           # React + TypeScript UI
 │   ├── src/
-│   │   ├── components/                    # React components
-│   │   │   ├── police/                    # Police system components
-│   │   │   │   ├── SuspectList.tsx        # Display all suspects
-│   │   │   │   ├── SuspectForm.tsx        # Create/update suspect form
-│   │   │   │   └── FlagControl.tsx        # Flag management interface
-│   │   │   ├── hospital/                  # Hospital system components
-│   │   │   │   ├── PatientList.tsx        # Display all patients
-│   │   │   │   ├── PatientForm.tsx        # Create/update patient form
-│   │   │   │   └── FlaggedPatients.tsx    # View flagged patients
-│   │   │   ├── shared/                    # Shared/cross-system components
-│   │   │   │   ├── CrossSystemQuery.tsx   # Inter-system data lookup
-│   │   │   │   ├── PersonCard.tsx         # Reusable person display card
-│   │   │   │   └── SyncIndicator.tsx      # Real-time sync status display
-│   │   │   └── layout/                    # Layout components
-│   │   │       ├── Header.tsx             # Application header
-│   │   │       ├── SystemPanel.tsx        # Container for each system view
-│   │   │       └── Footer.tsx             # Application footer
-│   │   ├── services/                      # API communication layer
-│   │   │   ├── policeApi.ts               # Police system API calls
-│   │   │   ├── hospitalApi.ts             # Hospital system API calls
-│   │   │   ├── api.ts                     # Shared API utilities (axios config)
-│   │   │   └── types.ts                   # TypeScript type definitions
-│   │   ├── hooks/                         # Custom React hooks
-│   │   │   ├── usePoliceData.ts           # Police data fetching/management
-│   │   │   ├── useHospitalData.ts         # Hospital data fetching/management
-│   │   │   ├── useFlagSync.ts             # Flag synchronization monitoring
-│   │   │   └── useCrossSystemQuery.ts     # Inter-system queries
-│   │   ├── context/                       # React Context for state
-│   │   │   └── AppContext.tsx             # Global application state
-│   │   ├── utils/                         # Utility functions
-│   │   │   ├── validation.ts              # Swedish personal ID validation
-│   │   │   └── formatting.ts              # Data formatting helpers
-│   │   ├── App.tsx                        # Root application component
-│   │   ├── main.tsx                       # Application entry point
-│   │   └── index.css                      # Global styles
-│   ├── package.json                       # Node dependencies
-│   ├── tsconfig.json                      # TypeScript configuration
-│   ├── vite.config.ts                     # Vite bundler configuration
-│   └── .env.example                       # Environment variables template
+│   │   ├── main.tsx                   # React entry point
+│   │   ├── App.tsx                    # Root component
+│   │   ├── types.ts                   # TypeScript type definitions
+│   │   └── components/
+│   │       ├── PoliceData.tsx         # Display suspects
+│   │       └── HospitalData.tsx       # Display patients
+│   ├── index.html                     # HTML template
+│   ├── package.json                   # Node dependencies
+│   ├── tsconfig.json                  # TypeScript configuration
+│   ├── vite.config.ts                 # Vite config with API proxies
+│   └── .gitignore
 │
 ├── shared/
-│   └── database-schemas/                  # SQL schema definitions
-│       ├── schema.sql                     # Database structure and FDW setup
-│       └── seed-data.sql                  # Sample data for testing
+│   └── database-schemas/               # SQL schema definitions
+│       ├── schema.sql                 # Database structure and FDW setup
+│       └── seed-data.sql              # Sample data for testing
 │
-├── docs/                                  # Documentation
-│   ├── psql-guide.md                      # PostgreSQL setup and usage guide
-│   ├── API.md                             # Complete API reference
-│   └── TESTING.md                         # Backend testing guide
+├── docs/                               # Documentation
+│   ├── psql-guide.md                  # PostgreSQL setup guide
+│   ├── API.md                         # Complete API reference
+│   └── TESTING.md                     # Backend testing guide
 │
-├── .gitignore                             # Git ignore patterns
-├── README.md                              # Project overview and quick start
-└── ARCHITECTURE.md                        # This file
+├── .gitignore                         # Git ignore patterns
+├── README.md                          # Project overview and setup
+└── ARCHITECTURE.md                    # This file
 ```
 
-## Key Folders Explained
+---
 
-### **backend/police-system/** and **backend/hospital-system/**
+## Technology Stack
 
-Each system has its own independent Rust backend with:
+### Backend
 
-- **src/main.rs** - Entry point, starts the web server
-- **src/api/** - REST API endpoints for CRUD operations and data sharing
-- **src/models/** - Data structures (structs) representing database tables
-- **src/database/** - PostgreSQL connection and query logic
-- **Cargo.toml** - Rust dependencies (actix-web, sqlx, tokio, etc.)
-- **.env.example** - Template for environment variables (copy to .env)
+- **Language:** Rust (latest stable)
+- **Web Framework:** Actix-web 4.x
+- **Database Driver:** SQLx 0.7 (async PostgreSQL driver)
+- **Async Runtime:** Tokio 1.x
+- **Serialization:** Serde 1.x
+- **CORS:** Actix-cors 0.7
+- **Logging:** env_logger 0.11, log 0.4
+- **Environment:** dotenv 0.15
 
-### **frontend/**
+### Frontend
 
-React + TypeScript demo interface that demonstrates the system's core functionality:
+- **UI Library:** React 18.3.1
+- **Language:** TypeScript 5.5.3
+- **Build Tool:** Vite 5.4.0
+- **Dev Server:** Vite (with API proxy)
 
-- **src/components/** - UI components organized by system (police/hospital) and shared functionality
-- **src/services/** - API communication layer that interfaces with both backend systems
-- **src/hooks/** - Custom React hooks for data fetching, state management, and synchronization
-- **src/context/** - Global state management using React Context API
-- **src/utils/** - Helper functions for validation and formatting
+### Database
 
-The frontend serves as a minimal demonstration interface, focusing on:
+- **Database:** PostgreSQL 15+
+- **Extensions:** postgres_fdw (Foreign Data Wrapper)
 
-- Visualizing data from both systems side-by-side
-- Demonstrating flag synchronization in real-time
-- Showing cross-system data queries
-- Providing basic CRUD operations for testing
+### Development Tools
 
-### **shared/database-schemas/**
+- **Rust:** Cargo (package manager)
+- **Node.js:** npm (package manager)
+- **macOS:** Homebrew (for PostgreSQL installation)
 
-SQL files for database setup:
+---
 
-- **schema.sql** - Creates both databases, sets up tables, configures postgres_fdw for cross-database synchronization, and creates triggers
-- **seed-data.sql** - Inserts sample Swedish individuals for testing
-
-### **docs/**
-
-- **psql-guide.md** - Comprehensive guide for PostgreSQL setup, database creation, and testing synchronization
-- **API.md** - Complete REST API documentation for both systems
-- **TESTING.md** - Manual testing guide with test scenarios and scripts
-
-## Architecture Overview
+## Architecture Diagram
 
 ```
 ┌─────────────────────────────────────────┐
-│       React Frontend (Port: 5173)       │
+│     React Frontend (Port: 3000)         │
 │  ┌───────────────────────────────────┐  │
-│  │  Police View  │  Hospital View    │  │
-│  │  - Suspects   │  - Patients       │  │
-│  │  - Flag ctrl  │  - Flagged list   │  │
-│  │  - Query hosp │  - Query police   │  │
+│  │  PoliceData   │  HospitalData     │  │
+│  │  Component    │  Component        │  │
 │  └───────────────────────────────────┘  │
 │         │                    │          │
-│      Axios API Services                 │
+│      Vite Proxy (API calls)             │
 └─────────┼────────────────────┼──────────┘
           │                    │
           │ HTTP REST          │ HTTP REST
@@ -162,10 +154,11 @@ SQL files for database setup:
 │  Port: 8000         │  │  Port: 8001         │
 │  ┌───────────────┐  │  │  ┌───────────────┐  │
 │  │ API Endpoints │  │  │  │ API Endpoints │  │
-│  │ - Suspects    │  │  │  │ - Patients    │  │
-│  │ - Flag mgmt   │  │  │  │ - Flagged     │  │
-│  │ - Shared API  │  │  │  │ - Shared API  │  │
+│  │ - /suspects   │  │  │  │ - /patients   │  │
+│  │ - /api/shared │  │  │  │ - /api/shared │  │
 │  └───────────────┘  │  │  └───────────────┘  │
+│         │           │  │         │           │
+│    SQLx Pool        │  │    SQLx Pool        │
 └──────────┬──────────┘  └──────────┬──────────┘
            │                        │
            │ postgres_fdw           │
@@ -182,545 +175,561 @@ SQL files for database setup:
     │  └─ patients table   │
     └──────────────────────┘
                ▲
-               │              Auto-sync trigger
-               │              (flag updates)
+               │  Trigger: sync_flag_to_hospital()
+               │  Auto-syncs flag updates
 ```
 
-## Frontend Architecture Details
+---
 
-### Component Organization
+## Backend Architecture
 
-The frontend follows a modular architecture with clear separation of concerns:
+### Police System (Port 8000)
 
-#### **Police System Components** (`components/police/`)
+**API Endpoints:**
 
-- **SuspectList.tsx** - Displays all suspects in a table/list format with sorting and filtering
-- **SuspectForm.tsx** - Form for creating new suspects and updating existing ones
-- **FlagControl.tsx** - Dedicated interface for flagging/unflagging suspects with visual feedback
+- `GET /suspects` - List all suspects
+- `POST /suspects` - Create new suspect
+- `GET /suspects/{id}` - Get suspect by ID
+- `PUT /suspects/{id}` - Update suspect
+- `DELETE /suspects/{id}` - Delete suspect
+- `GET /suspects/personal/{personal_id}` - Get suspect by Swedish personal ID
+- `PUT /suspects/{personal_id}/flag` - Update flag (triggers sync)
+- `GET /api/shared/suspects` - List all suspects (for hospital)
+- `GET /api/shared/suspects/{personal_id}` - Check suspect record (for hospital)
+- `GET /health` - Health check
 
-#### **Hospital System Components** (`components/hospital/`)
+**Key Features:**
 
-- **PatientList.tsx** - Displays all patients with their flag status
-- **PatientForm.tsx** - Form for patient registration and updates
-- **FlaggedPatients.tsx** - Filtered view showing only flagged patients (auto-synced from police)
+- Flag updates automatically sync to hospital database via trigger
+- Provides shared API for hospital system to query suspect records
+- Uses SQLx for type-safe, async database queries
+- Connection pooling with max 5 connections
+- CORS enabled for localhost:8001 and localhost:3000
 
-#### **Shared Components** (`components/shared/`)
+### Hospital System (Port 8001)
 
-- **CrossSystemQuery.tsx** - Interface for querying one system from another (e.g., hospital checking if patient has police record)
-- **PersonCard.tsx** - Reusable card component for displaying person information consistently
-- **SyncIndicator.tsx** - Visual indicator showing flag synchronization status in real-time
+**API Endpoints:**
 
-#### **Layout Components** (`components/layout/`)
+- `GET /patients` - List all patients
+- `POST /patients` - Create new patient
+- `GET /patients/{id}` - Get patient by ID
+- `PUT /patients/{id}` - Update patient
+- `DELETE /patients/{id}` - Delete patient
+- `GET /patients/personal/{personal_id}` - Get patient by Swedish personal ID
+- `GET /patients/flagged` - Get all flagged patients (auto-synced from police)
+- `GET /api/shared/patients` - List all patients (for police)
+- `GET /api/shared/patients/flagged` - List flagged patients (for police)
+- `GET /api/shared/patients/{personal_id}` - Check patient record (for police)
+- `GET /health` - Health check
 
-- **Header.tsx** - Application title, navigation, and system status indicators
-- **SystemPanel.tsx** - Container component for each system's view with consistent styling
-- **Footer.tsx** - Footer with project information and links
+**Key Features:**
 
-### Data Flow Architecture
+- Receives automatic flag updates from police system
+- Provides shared API for police system to query patient records
+- Read-only flag field (updated automatically from police)
+- Uses SQLx for type-safe, async database queries
+- Connection pooling with max 5 connections
+- CORS enabled for localhost:8000 and localhost:3000
 
-```
-User Interaction
-      ↓
-React Component
-      ↓
-Custom Hook (usePoliceData / useHospitalData)
-      ↓
-API Service (policeApi.ts / hospitalApi.ts)
-      ↓
-Axios HTTP Request
-      ↓
-Backend REST API
-      ↓
-PostgreSQL Database
-```
+### Shared Architecture Patterns
 
-### API Service Layer
+Both backend systems follow identical patterns:
 
-The service layer (`services/`) provides a clean abstraction over HTTP requests:
+1. **Layered Architecture:**
 
-**policeApi.ts** - Police system operations:
+   - `main.rs` - Application entry, HTTP server setup
+   - `api/` - REST endpoint handlers
+   - `models/` - Data structures (Suspect/Patient)
+   - `database/` - Database connection and queries
 
-- `getAllSuspects()` - GET /suspects
-- `getSuspectById(id)` - GET /suspects/{id}
-- `getSuspectByPersonalId(personalId)` - GET /suspects/personal/{personalId}
-- `createSuspect(data)` - POST /suspects
-- `updateSuspect(id, data)` - PUT /suspects/{id}
-- `deleteSuspect(id)` - DELETE /suspects/{id}
-- `updateFlag(personalId, flag)` - PUT /suspects/{personalId}/flag
-- `queryPatient(personalId)` - GET /api/shared/patients/{personalId}
+2. **Environment Configuration:**
 
-**hospitalApi.ts** - Hospital system operations:
+   ```env
+   DATABASE_URL=postgresql://postgres@localhost/[db_name]
+   SERVER_PORT=[8000|8001]
+   [OTHER_SYSTEM]_API_URL=http://localhost:[8001|8000]
+   ```
 
-- `getAllPatients()` - GET /patients
-- `getPatientById(id)` - GET /patients/{id}
-- `getPatientByPersonalId(personalId)` - GET /patients/personal/{personalId}
-- `getFlaggedPatients()` - GET /patients/flagged
-- `createPatient(data)` - POST /patients
-- `updatePatient(id, data)` - PUT /patients/{id}
-- `deletePatient(id)` - DELETE /patients/{id}
-- `querySuspect(personalId)` - GET /api/shared/suspects/{personalId}
+3. **Error Handling:**
 
-**api.ts** - Shared utilities:
+   - Consistent JSON error responses
+   - Detailed logging with log levels
+   - HTTP status codes (200, 201, 204, 404, 500)
 
-- Axios instance with base configuration
-- Request/response interceptors for error handling
-- Common headers (Content-Type, CORS)
+4. **CORS Configuration:**
+   - Allows cross-origin requests between systems
+   - Permits frontend access (localhost:3000)
+   - Development mode: allows all origins
 
-### Custom Hooks
+---
 
-Custom hooks (`hooks/`) encapsulate data fetching and state management logic:
-
-**usePoliceData.ts**
-
-- Fetches and manages suspect data
-- Provides loading states and error handling
-- Implements create, update, delete operations
-- Polls for updates or uses WebSocket for real-time data (if implemented)
-
-**useHospitalData.ts**
-
-- Fetches and manages patient data
-- Handles flagged patients separately
-- Provides CRUD operations
-- Syncs with police system changes
-
-**useFlagSync.ts**
-
-- Monitors flag synchronization status
-- Compares flag states between systems
-- Provides synchronization indicators
-- Triggers re-fetches when flags change
-
-**useCrossSystemQuery.ts**
-
-- Handles queries from one system to another
-- Manages query results and error states
-- Provides lookup functionality for personal IDs
-
-### State Management
-
-The frontend uses **React Context API** for minimal global state management:
-
-```typescript
-// AppContext.tsx structure
-{
-  police: {
-    suspects: Suspect[],
-    loading: boolean,
-    error: string | null
-  },
-  hospital: {
-    patients: Patient[],
-    flaggedPatients: Patient[],
-    loading: boolean,
-    error: string | null
-  },
-  sync: {
-    lastSyncTime: Date,
-    syncStatus: 'idle' | 'syncing' | 'success' | 'error'
-  }
-}
-```
-
-No complex state management library (like Redux) is needed for this demo interface.
-
-### TypeScript Types
-
-**types.ts** defines shared interfaces:
-
-```typescript
-interface Suspect {
-  id: number;
-  full_name: string | null;
-  personal_id: string | null;
-  flag: boolean | null;
-}
-
-interface Patient {
-  id: number;
-  full_name: string | null;
-  personal_id: string | null;
-  flag: boolean | null;
-}
-
-interface CreateSuspect {
-  full_name: string;
-  personal_id: string;
-  flag: boolean;
-}
-
-interface CreatePatient {
-  full_name: string;
-  personal_id: string;
-  flag: boolean;
-}
-
-interface FlagUpdate {
-  flag: boolean;
-}
-```
-
-### Key Demo Features
-
-The frontend focuses on demonstrating these core capabilities:
-
-1. **Side-by-Side System Views**
-
-   - Police and hospital systems visible simultaneously
-   - Easy comparison of data in both systems
-
-2. **Flag Synchronization Visualization**
-
-   - Real-time indicators when flags are updated
-   - Visual highlighting of synchronized records
-   - Sync status animations
-
-3. **Cross-System Queries**
-
-   - Hospital can check if patient has police record
-   - Police can check if suspect has hospital record
-   - Clear display of query results
-
-4. **CRUD Operations**
-
-   - Create, read, update, delete for both systems
-   - Form validation (Swedish personal ID format)
-   - Success/error feedback
-
-5. **Flagged Patient Monitoring**
-   - Dedicated view for flagged patients in hospital
-   - Automatic updates when police flags suspects
-   - Clear visual indicators for flagged status
+## Frontend Architecture
 
 ### Technology Stack
 
-**Core:**
+- **React 18.3.1** - UI library
+- **TypeScript 5.5.3** - Type safety
+- **Vite 5.4.0** - Build tool and dev server
 
-- React 18+ with TypeScript
-- Vite (fast build tool and dev server)
-- Axios (HTTP client)
-
-**Styling:**
-
-- Tailwind CSS (utility-first CSS framework) - recommended for rapid development
-- OR minimal custom CSS if preferred
-
-**Development Tools:**
-
-- ESLint (code linting)
-- Prettier (code formatting)
-- TypeScript compiler
-
-### Environment Configuration
-
-**Frontend .env.example:**
-
-```env
-# Backend API URLs
-VITE_POLICE_API_URL=http://localhost:8000
-VITE_HOSPITAL_API_URL=http://localhost:8001
-
-# Polling interval for data refresh (milliseconds)
-VITE_POLL_INTERVAL=5000
-
-# Enable debug logging
-VITE_DEBUG_MODE=false
-```
-
-### Integration Points with Backend
-
-The frontend integrates with backend systems through:
-
-1. **REST API Endpoints** - All communication uses documented REST APIs
-2. **CORS Configuration** - Backend CORS settings allow frontend origin (localhost:5173)
-3. **Error Handling** - Frontend gracefully handles API errors (404, 500, etc.)
-4. **Data Validation** - Client-side validation matches backend requirements
-5. **Real-time Updates** - Polling mechanism to detect flag synchronization (optional WebSocket upgrade)
-
-### Development Workflow
-
-1. **Start PostgreSQL** - `brew services start postgresql@15`
-2. **Start Police Backend** - `cd backend/police-system && cargo run` (port 8000)
-3. **Start Hospital Backend** - `cd backend/hospital-system && cargo run` (port 8001)
-4. **Start Frontend Dev Server** - `cd frontend && npm run dev` (port 5173)
-5. **Access Demo** - Navigate to `http://localhost:5173`
-
-### Recommended File Structure Example
+### Component Structure
 
 ```
-frontend/src/
-├── App.tsx                    # Root component with routing
-├── main.tsx                   # Entry point
-├── components/
-│   ├── police/
-│   │   ├── SuspectList.tsx
-│   │   ├── SuspectForm.tsx
-│   │   └── FlagControl.tsx
-│   ├── hospital/
-│   │   ├── PatientList.tsx
-│   │   ├── PatientForm.tsx
-│   │   └── FlaggedPatients.tsx
-│   ├── shared/
-│   │   ├── CrossSystemQuery.tsx
-│   │   ├── PersonCard.tsx
-│   │   └── SyncIndicator.tsx
-│   └── layout/
-│       ├── Header.tsx
-│       ├── SystemPanel.tsx
-│       └── Footer.tsx
-├── services/
-│   ├── api.ts                # Axios configuration
-│   ├── policeApi.ts          # Police API calls
-│   ├── hospitalApi.ts        # Hospital API calls
-│   └── types.ts              # TypeScript types
-├── hooks/
-│   ├── usePoliceData.ts
-│   ├── useHospitalData.ts
-│   ├── useFlagSync.ts
-│   └── useCrossSystemQuery.ts
-├── context/
-│   └── AppContext.tsx        # Global state
-├── utils/
-│   ├── validation.ts         # Personal ID validation
-│   └── formatting.ts         # Display formatting
-└── index.css                 # Global styles
+src/
+├── main.tsx              # React entry point
+├── App.tsx               # Root component
+├── types.ts              # TypeScript type definitions
+└── components/
+    ├── PoliceData.tsx    # Fetches and displays suspects
+    └── HospitalData.tsx  # Fetches and displays patients
 ```
+
+### Key Features
+
+1. **API Proxy Configuration:**
+
+   ```typescript
+   // vite.config.ts
+   proxy: {
+     "/api/police": {
+       target: "http://localhost:8000",
+       changeOrigin: true,
+       rewrite: (path) => path.replace(/^\/api\/police/, ""),
+     },
+     "/api/hospital": {
+       target: "http://localhost:8001",
+       changeOrigin: true,
+       rewrite: (path) => path.replace(/^\/api\/hospital/, ""),
+     },
+   }
+   ```
+
+2. **Type Definitions:**
+
+   - `Suspect` and `Patient` interfaces match backend models
+   - `CreateSuspect`, `CreatePatient` for POST requests
+   - `UpdateSuspect`, `UpdatePatient` for PUT requests
+   - `FlagUpdate` for flag status changes
+   - `HealthResponse` for health checks
+   - `ApiError` for error responses
+
+3. **Data Fetching:**
+
+   - Uses `useEffect` for initial data load
+   - `useState` for loading, error, and data state
+   - Error handling with try-catch
+   - Loading indicators
+
+4. **Display:**
+   - Simple HTML tables
+   - Minimal styling (no CSS framework)
+   - Read-only data visualization
+   - Null-safe rendering
+
+### Current Limitations
+
+- **Read-only:** No create, update, or delete functionality
+- **No forms:** Data entry must be done via API directly
+- **No routing:** Single-page application
+- **No real-time updates:** Manual refresh required
+- **Basic styling:** Plain HTML tables
+- **No authentication:** Open access (development mode)
+
+---
 
 ## Database Architecture
 
-### Cross-Database Communication
-
-The project uses **postgres_fdw** (Foreign Data Wrapper) to enable direct database-to-database communication:
-
-1. **Police database** can directly query the hospital's `patients` table
-2. **Automatic flag synchronization** via triggers
-3. **No application-level coordination** needed for flag updates
-
-### Tables
+### Schema Design
 
 **Police Database (police_db):**
 
 ```sql
-suspects (
+CREATE TABLE suspects (
     id SERIAL PRIMARY KEY,
     full_name TEXT,
     personal_id TEXT UNIQUE,
     flag BOOLEAN
-)
+);
 ```
 
 **Hospital Database (hospital_db):**
 
 ```sql
-patients (
+CREATE TABLE patients (
     id SERIAL PRIMARY KEY,
     full_name TEXT,
     personal_id TEXT UNIQUE,
     flag BOOLEAN
-)
+);
 ```
 
-### Flag Synchronization
+### Foreign Data Wrapper (FDW) Configuration
 
-When a suspect is flagged in the police database:
-
-1. A trigger (`trg_sync_flag`) fires automatically
-2. The flag is instantly synchronized to matching `personal_id` in hospital database
-3. No API calls or external processes needed
-
-Example:
+The police database can directly query the hospital's `patients` table:
 
 ```sql
 -- In police_db
-UPDATE suspects SET flag = true WHERE personal_id = '19850312-2398';
+CREATE SERVER hospital_server
+    FOREIGN DATA WRAPPER postgres_fdw
+    OPTIONS (dbname 'hospital_db', host 'localhost');
 
--- Automatically syncs to hospital_db.patients
--- No additional code required!
+CREATE USER MAPPING FOR CURRENT_USER
+    SERVER hospital_server
+    OPTIONS (user 'postgres', password '');
+
+IMPORT FOREIGN SCHEMA public
+    LIMIT TO (patients)
+    FROM SERVER hospital_server
+    INTO public;
 ```
+
+### Automatic Flag Synchronization
+
+When a suspect's flag is updated in the police database, it automatically synchronizes to the hospital database:
+
+```sql
+-- Trigger function
+CREATE OR REPLACE FUNCTION sync_flag_to_hospital()
+RETURNS TRIGGER AS $$
+BEGIN
+    UPDATE patients
+    SET flag = NEW.flag
+    WHERE personal_id = NEW.personal_id;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Trigger
+CREATE TRIGGER trg_sync_flag
+    AFTER UPDATE OF flag ON suspects
+    FOR EACH ROW
+    EXECUTE FUNCTION sync_flag_to_hospital();
+```
+
+### Flow Diagram
+
+```
+┌─────────────────────────────────────────┐
+│ Police updates flag for suspect         │
+│ UPDATE suspects SET flag = true         │
+│ WHERE personal_id = '19850312-2398'     │
+└──────────────┬──────────────────────────┘
+               │
+               ▼
+┌─────────────────────────────────────────┐
+│ Trigger: trg_sync_flag fires            │
+│ Executes: sync_flag_to_hospital()       │
+└──────────────┬──────────────────────────┘
+               │
+               ▼
+┌─────────────────────────────────────────┐
+│ UPDATE patients SET flag = true         │
+│ WHERE personal_id = '19850312-2398'     │
+│ (via Foreign Data Wrapper)              │
+└─────────────────────────────────────────┘
+```
+
+**Key Benefits:**
+
+- No application-level coordination needed
+- Instant synchronization (same transaction)
+- Database-level consistency guarantees
+- Simpler application code
+
+### Sample Data
+
+The seed data includes:
+
+- **8 shared records** - Present in both police and hospital databases
+- **2 police-only records** - Simon Nyberg and Carina Dahl
+- Swedish names and personal IDs
+- Mixed flag statuses for testing
+
+---
 
 ## Implementation Status
 
-**Completed:**
-
-- ✅ Database schema design
-- ✅ Cross-database synchronization setup
-- ✅ Sample seed data
-- ✅ PostgreSQL configuration guide
-- ✅ Project structure
-- ✅ Rust backend services (both police and hospital systems)
-- ✅ REST API endpoints
-- ✅ Database connection pools
-- ✅ API documentation
-- ✅ Backend testing guide
-
-**To Be Implemented:**
-
-- ⏳ Frontend React application
-  - [ ] Project setup (Vite + React + TypeScript)
-  - [ ] Component implementation
-  - [ ] API service layer
-  - [ ] Custom hooks for data management
-  - [ ] State management with Context API
-  - [ ] Styling (Tailwind CSS or custom)
-  - [ ] Flag synchronization visualization
-  - [ ] Cross-system query interface
-  - [ ] Form validation and error handling
-
-## Technology Stack
+### ✅ Completed
 
 **Backend:**
 
-- Rust (latest stable)
-- actix-web (web framework)
-- sqlx (async PostgreSQL driver)
-- tokio (async runtime)
-- serde (serialization)
-
-**Frontend:**
-
-- React 18+ (UI library)
-- TypeScript (type safety)
-- Vite (build tool)
-- Axios (HTTP client)
-- Tailwind CSS (styling) - recommended
-- React Context API (state management)
+- [x] Police system (Rust/Actix)
+- [x] Hospital system (Rust/Actix)
+- [x] REST API endpoints (CRUD + shared)
+- [x] Database connection pools
+- [x] SQLx queries
+- [x] CORS configuration
+- [x] Health check endpoints
+- [x] Flag update endpoint
+- [x] Shared API for cross-system queries
+- [x] Logging and error handling
 
 **Database:**
 
-- PostgreSQL 15+
-- postgres_fdw extension
+- [x] PostgreSQL schema
+- [x] Foreign Data Wrapper setup
+- [x] Flag synchronization trigger
+- [x] Seed data
 
-**Development Tools:**
+**Frontend:**
 
-- Cargo (Rust package manager)
-- npm/yarn (Node package manager)
-- VS Code with Rust and React extensions
-- Homebrew (macOS package manager)
+- [x] React + TypeScript setup
+- [x] Vite configuration with API proxy
+- [x] Type definitions
+- [x] PoliceData component
+- [x] HospitalData component
+- [x] Data fetching with useEffect
+- [x] Error handling and loading states
 
-## Environment Configuration
+**Documentation:**
 
-### Backend Systems
+- [x] PostgreSQL setup guide (psql-guide.md)
+- [x] API documentation (API.md)
+- [x] Testing guide (TESTING.md)
+- [x] Architecture documentation (this file)
+- [x] README with quick start
 
-Both backend services require a `.env` file (copy from `.env.example`):
+### ⏳ To Be Implemented (Future Enhancements)
 
-**Police System:**
+**Backend:**
 
-```env
-DATABASE_URL=postgresql://postgres@localhost/police_db
-SERVER_PORT=8000
-HOSPITAL_API_URL=http://localhost:8001
-```
+- [ ] JWT authentication
+- [ ] API key validation
+- [ ] Rate limiting
+- [ ] Audit logging
+- [ ] Input validation middleware
+- [ ] Pagination for list endpoints
+- [ ] Search and filtering
+- [ ] WebSocket for real-time updates
 
-**Hospital System:**
+**Frontend:**
 
-```env
-DATABASE_URL=postgresql://postgres@localhost/hospital_db
-SERVER_PORT=8001
-POLICE_API_URL=http://localhost:8000
-```
+- [ ] Create/Update/Delete forms
+- [ ] Flag toggle interface
+- [ ] Cross-system query interface
+- [ ] Real-time synchronization visualization
+- [ ] Flagged patients view
+- [ ] Search and filtering UI
+- [ ] Proper styling (CSS/Tailwind)
+- [ ] Loading skeletons
+- [ ] Toast notifications
+- [ ] Confirmation dialogs
+- [ ] Form validation
 
-### Frontend
+**Database:**
 
-The frontend requires a `.env` file for API endpoints:
+- [ ] Audit tables
+- [ ] Performance indexes
+- [ ] Database migrations system
+- [ ] Backup strategy
 
-```env
-VITE_POLICE_API_URL=http://localhost:8000
-VITE_HOSPITAL_API_URL=http://localhost:8001
-VITE_POLL_INTERVAL=5000
-VITE_DEBUG_MODE=false
-```
+**Testing:**
 
-## Getting Started
+- [ ] Unit tests (Rust)
+- [ ] Integration tests (Rust)
+- [ ] Frontend component tests
+- [ ] End-to-end tests
+- [ ] CI/CD pipeline
 
-### Backend Setup
+**Security:**
 
-1. **Install PostgreSQL** (see docs/psql-guide.md)
-2. **Create databases:**
+- [ ] HTTPS enforcement
+- [ ] Encrypted database connections
+- [ ] Input sanitization
+- [ ] SQL injection prevention (already handled by SQLx)
+- [ ] GDPR compliance measures
+- [ ] Data retention policies
+
+**Deployment:**
+
+- [ ] Docker containers
+- [ ] Docker Compose setup
+- [ ] Production environment configuration
+- [ ] Monitoring and alerting
+- [ ] Backup automation
+
+---
+
+## Security Considerations
+
+### Current State (Development)
+
+**Strengths:**
+
+- SQLx prevents SQL injection through prepared statements
+- Rust's memory safety prevents buffer overflows
+- Type-safe APIs prevent data corruption
+
+**Limitations (Development Only):**
+
+- ❌ No authentication
+- ❌ No authorization/access control
+- ❌ No rate limiting
+- ❌ No input validation
+- ❌ HTTP only (no HTTPS)
+- ❌ CORS allows all origins
+- ❌ No audit logging
+- ❌ Database credentials in .env files
+
+### Production Requirements
+
+**Must Implement:**
+
+1. **Authentication & Authorization:**
+
+   - JWT-based authentication
+   - Role-based access control (RBAC)
+   - Separate permissions for police vs hospital users
+   - API key authentication for inter-system communication
+
+2. **Network Security:**
+
+   - HTTPS/TLS for all connections
+   - Encrypted database connections
+   - Firewall rules
+   - VPN for inter-system communication
+
+3. **Data Protection:**
+
+   - Encryption at rest for sensitive data
+   - Hashed passwords
+   - Secure credential storage (e.g., HashiCorp Vault)
+   - GDPR compliance (data retention, right to deletion)
+
+4. **Input Validation:**
+
+   - Swedish personal ID format validation
+   - Request payload size limits
+   - SQL injection prevention (already handled by SQLx)
+   - XSS prevention in frontend
+
+5. **Monitoring & Auditing:**
+
+   - Audit logs for all data access
+   - Security event logging
+   - Intrusion detection
+   - Performance monitoring
+
+6. **Rate Limiting:**
+   - Per-IP rate limiting
+   - Per-user rate limiting
+   - API endpoint throttling
+
+---
+
+## Development Workflow
+
+### Starting the System
+
+1. **Start PostgreSQL:**
+
    ```bash
-   psql -U postgres -f shared/database-schemas/schema.sql
+   brew services start postgresql@15
    ```
-3. **Seed data:**
-   ```bash
-   psql -U postgres -f shared/database-schemas/seed-data.sql
-   ```
-4. **Configure environment:**
-   ```bash
-   cp backend/police-system/.env.example backend/police-system/.env
-   cp backend/hospital-system/.env.example backend/hospital-system/.env
-   ```
-5. **Start backend services:**
+
+2. **Start Police Backend:**
 
    ```bash
-   # Terminal 1 - Police System
    cd backend/police-system
    cargo run
+   ```
 
-   # Terminal 2 - Hospital System
+3. **Start Hospital Backend:**
+
+   ```bash
    cd backend/hospital-system
    cargo run
    ```
 
-### Frontend Setup
+4. **Start Frontend:**
 
-1. **Install dependencies:**
    ```bash
    cd frontend
-   npm install
-   ```
-2. **Configure environment:**
-   ```bash
-   cp .env.example .env
-   ```
-3. **Start development server:**
-   ```bash
    npm run dev
    ```
-4. **Access the application:**
-   - Frontend: `http://localhost:5173`
-   - Police API: `http://localhost:8000`
-   - Hospital API: `http://localhost:8001`
 
-## Security Considerations
+5. **Access:**
+   - Frontend: http://localhost:3000
+   - Police API: http://localhost:8000
+   - Hospital API: http://localhost:8001
 
-**Current State (Development):**
+### Testing Flag Synchronization
 
-- No authentication
-- Direct database access
-- Local-only connections
-- CORS enabled for localhost
+```bash
+# Flag a suspect in police system
+curl -X PUT http://localhost:8000/suspects/19850312-2398/flag \
+  -H "Content-Type: application/json" \
+  -d '{"flag": true}'
 
-**Production Requirements (Future):**
+# Verify sync in hospital system (immediate)
+curl http://localhost:8001/patients/personal/19850312-2398
+```
 
-- JWT authentication for both backend and frontend
-- API key validation
-- Rate limiting
-- Encrypted connections (HTTPS)
-- Audit logging
-- GDPR compliance for personal data
-- Secure storage of credentials
-- Input sanitization and validation
+---
 
-## Testing Strategy
+## Performance Considerations
 
-### Backend Testing
+### Database
 
-- Manual API testing (see docs/TESTING.md)
-- Automated test script (`test-all.sh`)
-- Database-level verification
-- Flag synchronization validation
+- Connection pooling (max 5 connections per service)
+- Indexes on `personal_id` (UNIQUE constraint provides index)
+- Consider additional indexes for `flag` if querying flagged records frequently
 
-### Frontend Testing (To Be Implemented)
+### Backend
 
-- Unit tests with Vitest
-- Component tests with React Testing Library
-- Integration tests for API calls
-- End-to-end tests with Playwright (optional)
+- Async/await throughout (non-blocking I/O)
+- Compiled Rust binary (fast execution)
+- Minimal memory footprint
 
-## Notes
+### Frontend
 
-- Personal IDs use Swedish format (YYYYMMDD-XXXX)
-- Sample data includes 8 shared records + 2 police-only records
-- Flag synchronization is unidirectional (police → hospital)
-- Frontend is intentionally minimal, focusing on core demo functionality
-- The demo interface prioritizes clarity over visual polish
-- Real-time synchronization can be enhanced with WebSocket (optional upgrade)
+- Vite for fast development builds
+- React 18 with concurrent rendering
+- Consider implementing pagination for large datasets
+- Consider implementing virtual scrolling for very large lists
+
+---
+
+## Scalability Considerations
+
+### Current Limitations
+
+- Single database instance
+- No load balancing
+- No caching layer
+- Synchronous flag synchronization (blocks on trigger)
+
+### Future Improvements
+
+- **Database:** PostgreSQL read replicas for queries
+- **Backend:** Horizontal scaling with load balancer
+- **Caching:** Redis for frequently accessed data
+- **Message Queue:** Async flag synchronization with RabbitMQ/Kafka
+- **CDN:** Static asset delivery
+- **Microservices:** Further decomposition if needed
+
+---
+
+## Contributing
+
+When contributing to this project:
+
+1. Follow Rust style guidelines (`cargo fmt`)
+2. Add tests for new functionality
+3. Update documentation
+4. Ensure all tests pass (`cargo test`)
+5. Use meaningful commit messages
+6. Update ARCHITECTURE.md for significant changes
+
+---
+
+## References
+
+- [PostgreSQL Foreign Data Wrapper Documentation](https://www.postgresql.org/docs/current/postgres-fdw.html)
+- [Actix-web Documentation](https://actix.rs/)
+- [SQLx Documentation](https://github.com/launchbadge/sqlx)
+- [React Documentation](https://react.dev/)
+- [Vite Documentation](https://vitejs.dev/)
+
+---
+
+_Last Updated: January 2025_
