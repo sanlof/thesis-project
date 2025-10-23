@@ -116,3 +116,69 @@ Requirements:
 Generate the complete updated `src/App.tsx` file.
 ```
 
+
+## Usage Instructions
+After generating all files with these prompts:
+
+1. Install dependencies:
+
+```
+cd frontend
+npm install
+```
+
+2. Start backend services first:
+```
+# Terminal 1 - Police System
+cd backend/police-system
+cargo run
+```
+```
+# Terminal 2 - Hospital System
+cd backend/hospital-system
+cargo run
+```
+3. Start frontend:
+
+```
+# Terminal 3 - Frontend
+cd frontend
+npm run dev
+```
+
+4. Open browser: http://localhost:3000
+
+---
+
+## Expected File Structure
+
+After running all prompts, you should have:
+```
+frontend/
+├── package.json
+├── tsconfig.json
+├── vite.config.ts
+├── index.html
+├── README.md
+├── src/
+│   ├── main.tsx
+│   ├── App.tsx
+│   ├── types.ts
+│   └── components/
+│       ├── PoliceData.tsx
+│       ├── HospitalData.tsx
+│       ├── FlaggedPatients.tsx
+│       └── CrossReference.tsx (optional)
+└── node_modules/
+```
+### Key Points
+
+* No styling: All components use plain HTML elements
+* No CRUD: Components only fetch and display data (GET requests only)
+* No forms: No user input or data modification
+* No routing: Single page application with all data visible at once
+* Type-safe: TypeScript ensures data structures match backend
+* Minimal dependencies: Only React, ReactDOM, TypeScript, and Vite
+* CORS-friendly: Backend already has CORS enabled for localhost
+
+This approach gives you a functional, barebones UI that displays your backend data with zero complexity.
