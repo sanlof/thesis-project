@@ -103,3 +103,21 @@ Include prompts that:
 Goal: Produce a barebones, functional UI that simply renders backend data in tabular format — nothing more.
 
 _See `frontend-prompts.md` for results._
+
+## Prompt 3.2 (with Claude Sonnet 4.5)
+
+_Prompt submitted with repository access granted to the AI._
+
+Add flag toggle functionality to the Police Data component (PoliceData.tsx) in this React + TypeScript frontend.
+
+Requirements:
+
+1. Add a toggle button/checkbox in each suspect row to change the flag status
+2. On toggle, send PUT request to /api/police/suspects/{personal_id}/flag with JSON body: {"flag": boolean}
+3. Update local state after successful API response
+4. Show loading state during request (disable toggle button)
+5. Handle and display errors if request fails
+6. Use existing FlagUpdate type from types.ts
+7. Keep styling minimal (no CSS frameworks)
+
+The backend endpoint already exists and automatically syncs flags to the hospital database via PostgreSQL triggers. Generate only the updated PoliceData.tsx component with the flag toggle feature implemented.
