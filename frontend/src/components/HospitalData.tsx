@@ -1,36 +1,27 @@
-import { useEffect, useState } from "react";
 import { Patient } from "../types";
+import { usePolling } from "../hooks/usePolling";
 
 function HospitalData() {
-  const [patients, setPatients] = useState<Patient[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string | null>(null);
+  const fetchPatients = async (): Promise<Patient[]> => {
+    const response = await fetch("/api/hospital/patients");
 
-  useEffect(() => {
-    const fetchPatients = async () => {
-      try {
-        setLoading(true);
-        setError(null);
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
 
-        const response = await fetch("/api/hospital/patients");
+    return response.json();
+  };
 
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
-
-        const data: Patient[] = await response.json();
-        setPatients(data);
-      } catch (err) {
-        const errorMessage =
-          err instanceof Error ? err.message : "Unknown error";
-        setError(errorMessage);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchPatients();
-  }, []);
+  const {
+    data: patients,
+    loading,
+    error,
+    isRefreshing,
+  } = usePolling<Patient[]>(fetchPatients, {
+    enabled: true,
+    interval: 3000,
+    pauseOnInactive: true,
+  });
 
   if (loading) {
     return <div>Loading hospital data...</div>;
@@ -40,9 +31,16 @@ function HospitalData() {
     return <div>Error loading hospital data: {error}</div>;
   }
 
+  if (!patients) {
+    return <div>No data available</div>;
+  }
+
   return (
     <div>
-      <h2>Hospital System - Patients</h2>
+      <h2>
+        Hospital System - Patients
+        {isRefreshing && <span> (refreshing...)</span>}
+      </h2>
       <table>
         <thead>
           <tr>

@@ -121,3 +121,49 @@ Requirements:
 7. Keep styling minimal (no CSS frameworks)
 
 The backend endpoint already exists and automatically syncs flags to the hospital database via PostgreSQL triggers. Generate only the updated PoliceData.tsx component with the flag toggle feature implemented.
+
+## Prompt 3.3 (with Claude Sonnet 4.5)
+
+_Prompt submitted with repository access granted to the AI._
+
+## Context
+
+Thesis project with police/hospital systems (Rust backend, React frontend). When police flag suspects, the database syncs instantly via PostgreSQL triggers, but the hospital frontend doesn't auto-refresh.
+
+## Task
+
+Add **smart polling** to `frontend/src/components/HospitalData.tsx` that:
+
+- Polls `/api/hospital/patients` every 3 seconds
+- Pauses when tab is inactive (Page Visibility API)
+- Shows a subtle "refreshing" indicator
+- Cleans up on unmount
+- Handles errors gracefully
+
+## Requirements
+
+- Create custom hook `usePolling` in `frontend/src/hooks/usePolling.ts`
+- Update `HospitalData.tsx` to use the hook
+- TypeScript with proper types
+- No jarring UI updates
+- Configurable polling interval
+- **No CSS**
+- **Do not add, change, or remove any existing styling**
+- **Do not include any code comments**
+
+## Deliverables
+
+1. `usePolling.ts` – Custom hook with polling logic
+2. Updated `HospitalData.tsx` – Using the hook with refresh indicator
+3. Brief explanation of implementation
+
+## Success Criteria
+
+- Polling starts/stops correctly
+- Pauses when tab inactive
+- Flag changes appear within 3 seconds
+- No memory leaks
+- No CSS
+- Clean, maintainable code without comments or styling changes
+
+Existing code uses `useEffect` with one-time fetch. Keep it simple and functional for a thesis demo.
