@@ -167,3 +167,27 @@ Add **smart polling** to `frontend/src/components/HospitalData.tsx` that:
 - Clean, maintainable code without comments or styling changes
 
 Existing code uses `useEffect` with one-time fetch. Keep it simple and functional for a thesis demo.
+
+# 4 - Code Security
+
+## Prompt 4.1 (with Claude Sonnet 4.5)
+
+_Prompt submitted with repository access granted to the AI._
+
+This thesis project investigates the capability of AI systems to generate secure software architectures when guided by precise and structured prompts. The use case involves an inter-system data exchange between two domains: a police information system and a hospital management system.
+
+In the police system, officers can flag or unflag individuals identified as violent suspects. This flag is then transmitted to the hospital system to inform medical personnel, enabling them to take appropriate precautions when treating patients with a documented history of violent behavior.
+
+The backend is implemented in **Rust**, utilizing a **PostgreSQL** database, while the frontend is developed with **React** and **TypeScript**. The study explicitly excludes concerns related to user authentication, authorization, or internal application security within either the police or hospital systems. The focus is solely on the **security and integrity of the data transfer process** between the two systems — specifically, ensuring that the flag status is transmitted reliably, confidentially, and without risk of tampering or unauthorized access.
+
+In a real-world deployment, such data would be classified as highly sensitive, containing personally identifiable information (PII) and law enforcement records. Therefore, achieving a secure and verifiable data transfer mechanism is the primary objective of this investigation.
+
+Analyze the provided repository and system architecture to identify potential security vulnerabilities or weaknesses related to the transfer of data between the police and hospital systems. Focus specifically on the following aspects:
+
+1. **Data integrity** – risks of data corruption, manipulation, or tampering during transmission.
+2. **Confidentiality** – exposure of sensitive data, potential for data leakage, and adequacy of encryption mechanisms.
+3. **Authentication and authorization between systems** – ensuring only authorized entities can initiate or receive a flag transfer.
+4. **Communication protocol security** – possible weaknesses in transport mechanisms (e.g., HTTPS, TLS configuration, API endpoints).
+5. **Auditability and traceability** – ability to verify and log transfer actions for accountability.
+
+Provide a structured assessment that highlights vulnerabilities, their potential impact, and recommendations or mitigations to improve the security of the flag transfer process.
