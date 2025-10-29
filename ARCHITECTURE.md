@@ -102,7 +102,7 @@ thesis-project/
 
 ## Technology Stack
 
-### Backend
+### Backend Tech Stack
 
 - **Language:** Rust (latest stable)
 - **Web Framework:** Actix-web 4.x
@@ -113,14 +113,14 @@ thesis-project/
 - **Logging:** env_logger 0.11, log 0.4
 - **Environment:** dotenv 0.15
 
-### Frontend
+### Frontend Tech Stack
 
 - **UI Library:** React 18.3.1
 - **Language:** TypeScript 5.5.3
 - **Build Tool:** Vite 5.4.0
 - **Dev Server:** Vite (with API proxy)
 
-### Database
+### Database Tech Stack
 
 - **Database:** PostgreSQL 15+
 - **Extensions:** postgres_fdw (Foreign Data Wrapper)
@@ -265,7 +265,7 @@ Both backend systems follow identical patterns:
 
 ## Frontend Architecture
 
-### Technology Stack
+### Frontend Technology Stack
 
 - **React 18.3.1** - UI library
 - **TypeScript 5.5.3** - Type safety
@@ -325,7 +325,7 @@ src/
    - Read-only data visualization
    - Null-safe rendering
 
-### Current Limitations
+### Current Project Limitations
 
 - **Read-only:** No create, update, or delete functionality
 - **No forms:** Data entry must be done via API directly
@@ -651,6 +651,7 @@ The seed data includes:
    - Frontend: <http://localhost:3000>
    - Police API: <http://localhost:8000>
    - Hospital API: <http://localhost:8001>
+
 ### Testing Flag Synchronization
 
 ```bash
@@ -667,19 +668,19 @@ curl http://localhost:8001/patients/personal/19850312-2398
 
 ## Performance Considerations
 
-### Database
+### Database Performance
 
 - Connection pooling (max 5 connections per service)
 - Indexes on `personal_id` (UNIQUE constraint provides index)
 - Consider additional indexes for `flag` if querying flagged records frequently
 
-### Backend
+### Backend Performance
 
 - Async/await throughout (non-blocking I/O)
 - Compiled Rust binary (fast execution)
 - Minimal memory footprint
 
-### Frontend
+### Frontend Performance
 
 - Vite for fast development builds
 - React 18 with concurrent rendering
@@ -690,7 +691,7 @@ curl http://localhost:8001/patients/personal/19850312-2398
 
 ## Scalability Considerations
 
-### Current Limitations
+### Current Scale Limitations
 
 - Single database instance
 - No load balancing
@@ -731,4 +732,4 @@ When contributing to this project:
 
 ---
 
-_Last Updated: January 2025_
+Last Updated: January 2025
