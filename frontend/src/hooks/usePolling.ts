@@ -47,7 +47,7 @@ export function usePolling<T>(
       return;
     }
 
-    intervalRef.current = window.setInterval(() => {
+    intervalRef.current = globalThis.setInterval(() => {
       if (!pauseOnInactive || isPageVisible.current) {
         void fetchData(true);
       }
@@ -69,7 +69,7 @@ export function usePolling<T>(
         if (document.hidden) {
           stopPolling();
         } else {
-          fetchData(true);
+          void fetchData(true);
           startPolling();
         }
       }
