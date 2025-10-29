@@ -189,9 +189,9 @@ curl http://localhost:8001/patients
 
 **Open in browser:**
 
-- Frontend: http://localhost:3000
-- Police API: http://localhost:8000/suspects
-- Hospital API: http://localhost:8001/patients
+- Frontend: <http://localhost:3000>
+- Police API: <http://localhost:8000/suspects>
+- Hospital API: <http://localhost:8001/patients>
 
 ## 🧪 Testing Flag Synchronization
 

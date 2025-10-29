@@ -31,7 +31,7 @@ function PoliceData() {
       }
     };
 
-    fetchSuspects();
+    void fetchSuspects();
   }, []);
 
   const toggleFlag = async (suspect: Suspect) => {

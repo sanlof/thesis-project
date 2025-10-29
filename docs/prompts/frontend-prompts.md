@@ -145,7 +145,7 @@ cd frontend
 npm run dev
 ```
 
-4. Open browser: http://localhost:3000
+4. Open browser: <http://localhost:3000>
 
 ---
 

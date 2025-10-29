@@ -21,7 +21,7 @@ export function usePolling<T>(
   const isFirstFetch = useRef<boolean>(true);
   const isPageVisible = useRef<boolean>(true);
 
-  const fetchData = async (showRefreshIndicator: boolean = false) => {
+  const fetchData = async (showRefreshIndicator = false) => {
     try {
       if (showRefreshIndicator) {
         setIsRefreshing(true);
@@ -49,7 +49,7 @@ export function usePolling<T>(
 
     intervalRef.current = window.setInterval(() => {
       if (!pauseOnInactive || isPageVisible.current) {
-        fetchData(true);
+        void fetchData(true);
       }
     }, interval);
   };
@@ -95,7 +95,7 @@ export function usePolling<T>(
       return;
     }
 
-    fetchData(false);
+    void fetchData(false);
     startPolling();
 
     return () => {
