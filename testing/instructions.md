@@ -195,17 +195,4 @@ ls nmap-results/
 
 ---
 
-## For Your Thesis
-
-Key findings to document:
-
-- ✅ No known vulnerabilities detected
-- ✅ SQL injection prevented by SQLx
-- ✅ Memory safety guaranteed by Rust
-- ⚠️ HTTP only (development mode)
-- ⚠️ Permissive CORS (development mode)
-- ⚠️ No authentication (development mode)
-
----
-
 _Last Updated: January 2025_
