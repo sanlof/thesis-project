@@ -191,3 +191,44 @@ Analyze the provided repository and system architecture to identify potential se
 5. **Auditability and traceability** – ability to verify and log transfer actions for accountability.
 
 Provide a structured assessment that highlights vulnerabilities, their potential impact, and recommendations or mitigations to improve the security of the flag transfer process.
+
+## Prompt 4.2 (with Claude Sonnet 4.5)
+
+_Prompt submitted with repository access granted to the AI._
+
+Create a `testing/` directory with two files for security testing a Rust microservices project (Police System:8000, Hospital System:8001, PostgreSQL:5432).
+
+## File 1: instructions.md
+
+Include:
+
+1. **Prerequisites**: Install nmap (Homebrew), start services (cargo run), verify with curl
+2. **Automated Option**: Run `run-all-scans.sh` (~12-15 min), view timestamped results
+3. **Manual Option**: Individual nmap commands for each test
+4. **Results Interpretation**: Expected findings (services running, development mode warnings)
+5. **Troubleshooting**: Permission errors, services not running, script stuck
+6. **Quick Reference Table**: All 12 tests with descriptions and times
+
+Use emojis (🔍📌✅⚠️), educational tone, macOS-focused, professional markdown formatting.
+
+## File 2: run-all-scans.sh
+
+Bash script with:
+
+- Header: banner, timestamped directory (`nmap-results/scan_YYYY-MM-DD_HH-MM-SS`), start time
+- **12 Sequential Tests** with progress ("Test X/12: [Description]..." → "✅ Complete"):
+  1. Port check (8000, 8001)
+  2. Service versions
+  3. All services + PostgreSQL
+  4. HTTP methods
+  5. HTTP headers
+  6. CORS config
+  7. Vulnerability scan (`--script vuln`)
+  8. SQL injection
+  9. XSS
+  10. Slowloris DoS
+  11. Comprehensive (`-A`)
+  12. Essential HTTP scripts
+- Summary: completion message, results path, finish time, file sizes
+
+Target: localhost. Save as numbered .txt files (01-port-check.txt, etc.). Make executable (`#!/bin/bash`).
