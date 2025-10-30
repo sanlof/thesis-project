@@ -1,31 +1,15 @@
-engines:
-  # --- Rust Security ---
-  cargo-audit:
-    enabled: true # Hittar osäkra dependencies i Cargo.toml / Cargo.lock
-
-  clippy:
-    enabled: false # Best practices / style → stäng av
-
-  # --- PostgreSQL ---
-  sqlfluff:
-    enabled: false # Code style / formatting → stäng av
-  sqlint:
-    enabled: false # Syntax checking only → ej nödvändig för säkerhet
-
-  # --- TypeScript / React ---
-  eslint:
-    enabled: true
-    extra_args: ["--config", ".eslintrc.security.json"] # du kan skapa en säkerhetsfokuserad ESLint-config
-
-  tslint:
-    enabled: false # Utfasat, ofta stilregler → stäng av
-  prettier:
-    enabled: false # Bara formattering → stäng av
-
-  # --- Övriga språkverktyg (inaktiverade) ---
-  checkstyle:
-    enabled: false
-  rubocop:
-    enabled: false
-  pylint:
-    enabled: false
+runtimes:
+    - dart@3.7.2
+    - go@1.22.3
+    - java@17.0.10
+    - node@22.2.0
+    - python@3.11.11
+tools:
+    - dartanalyzer@3.7.2
+    - eslint@8.57.0
+    - lizard@1.17.31
+    - pmd@7.11.0
+    - pylint@3.3.6
+    - revive@1.7.0
+    - semgrep@1.78.0
+    - trivy@0.66.0
