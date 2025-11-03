@@ -36,7 +36,7 @@ SCAN_TIMEOUT=10
 # Detect ZAP installation path
 if [[ "$OSTYPE" == "darwin"* ]]; then
     # macOS
-    ZAP_CMD="/Applications/OWASP ZAP.app/Contents/Java/zap.sh"
+    ZAP_CMD="/Applications/ZAP.app/Contents/Java/zap.sh"
 elif command -v zap.sh &> /dev/null; then
     # Linux with zap.sh in PATH
     ZAP_CMD="zap.sh"
