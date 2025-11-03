@@ -58,7 +58,7 @@ Generate PostgreSQL seed data for two databases (police_db.individuals and hospi
 
 ## Prompt 2.3 (with Claude Sonnet 4.5)
 
-_Prompt submitted with repository access granted to the AI._
+_Prompt submitted with repository access granted to the AI (docs/prompts excluded)_
 
 Using this repo, create a series of AI prompts in order to generate code for the entire backend of this project.
 
@@ -82,7 +82,7 @@ Write a detailed GitHub issue that:
 
 ## Prompt 3.1 (with Claude Sonnet 4.5)
 
-_Prompt submitted with repository access granted to the AI._
+_Prompt submitted with repository access granted to the AI (docs/prompts excluded)_
 
 Using this repository as context, generate a series of AI prompts that will produce a minimal frontend for the project.
 
@@ -106,7 +106,7 @@ _See `frontend-prompts.md` for results._
 
 ## Prompt 3.2 (with Claude Sonnet 4.5)
 
-_Prompt submitted with repository access granted to the AI._
+_Prompt submitted with repository access granted to the AI (docs/prompts excluded)_
 
 Add flag toggle functionality to the Police Data component (PoliceData.tsx) in this React + TypeScript frontend.
 
@@ -124,7 +124,7 @@ The backend endpoint already exists and automatically syncs flags to the hospita
 
 ## Prompt 3.3 (with Claude Sonnet 4.5)
 
-_Prompt submitted with repository access granted to the AI._
+_Prompt submitted with repository access granted to the AI (docs/prompts excluded)_
 
 ## Context
 
@@ -172,7 +172,7 @@ Existing code uses `useEffect` with one-time fetch. Keep it simple and functiona
 
 ## Prompt 4.1 (with Claude Sonnet 4.5)
 
-_Prompt submitted with repository access granted to the AI._
+_Prompt submitted with repository access granted to the AI (docs/prompts excluded)_
 
 This thesis project investigates the capability of AI systems to generate secure software architectures when guided by precise and structured prompts. The use case involves an inter-system data exchange between two domains: a police information system and a hospital management system.
 
@@ -194,7 +194,7 @@ Provide a structured assessment that highlights vulnerabilities, their potential
 
 ## Prompt 4.2 (with Claude Sonnet 4.5)
 
-_Prompt submitted with repository access granted to the AI._
+_Prompt submitted with repository access granted to the AI (docs/prompts excluded)_
 
 Create a `testing/` directory with two files for security testing a Rust microservices project (Police System:8000, Hospital System:8001, PostgreSQL:5432).
 
@@ -232,3 +232,23 @@ Bash script with:
 - Summary: completion message, results path, finish time, file sizes
 
 Target: localhost. Save as numbered .txt files (01-port-check.txt, etc.). Make executable (`#!/bin/bash`).
+
+## Prompt 4.3 (with Claude Sonnet 4.5)
+
+_Prompt submitted with repository access granted to the AI (docs/prompts excluded)_
+
+This is an academic project using synthetic data; no production or sensitive information will be used. The objective is to evaluate secure data transfer between two systems: a Rust-based backend and a React + TypeScript frontend. We already have functional nmap testing with scripts and documentation. The next step is to integrate automated OWASP ZAP scanning for the backend into our test artifacts.
+
+Deliverables (produce **only** these two files):
+
+1. `owasp-zap-instructions.md` — a concise, step-by-step guide for running OWASP ZAP from the command line against the Rust backend. Include prerequisites, installation notes (CLI/headless mode), recommended scan options for API/data-transfer testing, example commands, and brief guidance on interpreting results. Do not include authentication or user-login procedures — the scope is limited to data transfer only.
+2. `run-all-owasp-zap-scans.sh` — a POSIX-compatible shell script that automates running the required OWASP ZAP CLI scans for the backend. The script should be idempotent, accept a single configurable target/base-URL variable at the top, produce timestamped output/log files, and exit with a non-zero code if a high-severity issue is detected. It should not require a browser UI and must run entirely from the command line.
+
+Constraints and scope:
+
+- Focus only on backend data-transfer endpoints; do not add authentication, user management, or frontend testing.
+- ZAP must run headlessly / via CLI only.
+- Assume test data is fictional and no sensitive or production data will be used.
+- Keep instructions and scripts portable and easy for other students to run on macOS/Linux.
+
+Keep the language clear and concise; aim the content at developers familiar with Rust/React but new to OWASP ZAP.

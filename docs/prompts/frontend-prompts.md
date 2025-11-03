@@ -2,7 +2,7 @@
 
 Here's a series of prompts to generate a minimal frontend for your police-hospital system. Use these prompts sequentially with an AI assistant.
 
-_Prompts submitted with repository access granted to the AI._
+_Prompt submitted with repository access granted to the AI (docs/prompts excluded)_
 
 ## Prompt 1: Project Setup
 
