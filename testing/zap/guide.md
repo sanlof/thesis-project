@@ -1,5 +1,44 @@
 # Security Testing Guide: Data Transfer Security
 
+## ⚠️ EDUCATIONAL RESEARCH PROJECT
+
+**This guide documents penetration testing conducted on AI-generated code for academic thesis research.**
+
+### Critical Legal Notice
+
+**Before proceeding, understand that:**
+
+1. **Unauthorized security testing is illegal** - Using these tools without permission can violate:
+
+   - Computer Fraud and Abuse Act (USA)
+   - Computer Misuse Act (UK)
+   - Similar laws in most countries
+
+2. **Our research was authorized:**
+
+   - ✅ Testing on localhost only
+   - ✅ Systems we own and control
+   - ✅ Fictitious data only
+
+3. **This guide is for:**
+   - ✅ Understanding our research methodology
+   - ✅ Academic review and replication
+   - ✅ Educational purposes in authorized environments
+   - ❌ NOT for testing systems you don't own
+
+### Ethical Use Requirement
+
+If you use OWASP ZAP or similar tools based on this guide, you must:
+
+- Have explicit written authorization
+- Only test systems you own or have permission to test
+- Comply with all applicable laws
+- Follow responsible disclosure practices
+
+**Proceed only if you understand and accept these responsibilities.**
+
+---
+
 A focused guide for testing data-in-transit security in the Police & Hospital System thesis project using OWASP ZAP.
 
 ## Table of Contents

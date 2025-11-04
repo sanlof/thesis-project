@@ -1,5 +1,30 @@
 # Nmap Security Testing - Quick Guide (macOS)
 
+## ⚠️ EDUCATIONAL RESEARCH USE ONLY
+
+**This guide describes penetration testing tools used for academic research on AI-generated code.**
+
+### Legal Warning
+
+**STOP**: Before using these tools, understand that:
+
+- ❌ **Unauthorized network scanning is illegal** in most jurisdictions
+- ❌ Running these scans on systems you don't own can result in criminal charges
+- ✅ These tools were used exclusively on **localhost** for thesis research
+- ✅ All testing was performed on **fictitious data** in a controlled environment
+
+### Intended Use
+
+This documentation is for:
+
+- Academic review of our research methodology
+- Understanding how AI-generated code was tested
+- Educational purposes in authorized environments
+
+**If you run these scans, you are responsible for ensuring you have proper authorization.**
+
+---
+
 Quick guide for running nmap security tests on the Police & Hospital backend systems.
 
 ## Prerequisites
