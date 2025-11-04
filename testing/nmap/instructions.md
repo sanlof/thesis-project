@@ -1,3 +1,26 @@
+# ⚠️ STOP - READ THIS FIRST ⚠️
+
+## YOU MAY BE BREAKING THE LAW
+
+Before running ANY commands in this guide, understand:
+
+1. **These are penetration testing tools**
+2. **Using them without authorization is a crime in most countries**
+3. **"I didn't know" is not a legal defense**
+
+## Required Authorization Checklist
+
+You may ONLY proceed if ALL of these are true:
+
+- [ ] You are the system owner
+- [ ] These services are running on YOUR computer
+- [ ] You started these services yourself as part of the thesis project
+- [ ] You understand you are responsible for any misuse
+
+If you cannot check all boxes, **STOP NOW**.
+
+---
+
 # Nmap Security Testing - Quick Guide (macOS)
 
 ## ⚠️ EDUCATIONAL RESEARCH USE ONLY

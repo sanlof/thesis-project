@@ -1,5 +1,52 @@
 #!/bin/bash
 
+echo "⚠️  LEGAL WARNING ⚠️"
+echo "================================"
+echo "This script will perform security testing that may be ILLEGAL"
+echo "if performed without authorization."
+echo ""
+echo "You may ONLY proceed if:"
+echo "  ✓ You own these systems"
+echo "  ✓ You have written authorization"
+echo "  ✓ You are testing in an authorized lab environment"
+echo ""
+echo "Unauthorized testing violates:"
+echo "  - Computer Fraud and Abuse Act (USA)"
+echo "  - Computer Misuse Act (UK)"
+echo "  - Similar laws in your jurisdiction"
+echo ""
+read -p "Do you have authorization to test localhost:8000-8001? (type 'YES' to continue): " CONFIRM
+
+if [ "$CONFIRM" != "YES" ]; then
+    echo "Test cancelled. Good choice."
+    exit 1
+fi
+
+echo ""
+read -p "Are these YOUR services running on YOUR machine? (type 'YES' to continue): " CONFIRM2
+
+if [ "$CONFIRM2" != "YES" ]; then
+    echo "Test cancelled."
+    exit 1
+fi
+
+echo "Verifying target services..."
+echo ""
+
+# Check if services respond with expected signatures
+POLICE_CHECK=$(curl -s http://localhost:8000/health 2>/dev/null | grep -c "police-system")
+HOSPITAL_CHECK=$(curl -s http://localhost:8001/health 2>/dev/null | grep -c "hospital-system")
+
+if [ "$POLICE_CHECK" -eq 0 ] || [ "$HOSPITAL_CHECK" -eq 0 ]; then
+    echo "❌ ERROR: Services don't match expected thesis project signatures"
+    echo "This script should ONLY be used on the Police/Hospital thesis project"
+    echo "Aborting for safety."
+    exit 1
+fi
+
+echo "✓ Services verified as thesis project backends"
+echo ""
+
 echo "🔍 Complete Nmap Security Scan - Police & Hospital Systems"
 echo "============================================================"
 echo ""
