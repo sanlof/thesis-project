@@ -1,6 +1,6 @@
 use actix_web::{
     dev::{forward_ready, Service, ServiceRequest, ServiceResponse, Transform},
-    Error, HttpResponse, body::BoxBody,
+    Error, HttpResponse, body::{BoxBody, MessageBody},
 };
 use futures_util::future::LocalBoxFuture;
 use std::future::{ready, Ready};
@@ -20,7 +20,7 @@ impl<S, B> Transform<S, ServiceRequest> for ApiKeyAuth
 where
     S: Service<ServiceRequest, Response = ServiceResponse<B>, Error = Error>,
     S::Future: 'static,
-    B: 'static,
+    B: MessageBody + 'static,
 {
     type Response = ServiceResponse<BoxBody>;
     type Error = Error;
@@ -45,7 +45,7 @@ impl<S, B> Service<ServiceRequest> for ApiKeyAuthMiddleware<S>
 where
     S: Service<ServiceRequest, Response = ServiceResponse<B>, Error = Error>,
     S::Future: 'static,
-    B: 'static,
+    B: MessageBody + 'static,
 {
     type Response = ServiceResponse<BoxBody>;
     type Error = Error;
