@@ -2,7 +2,8 @@ use actix_web::{web, HttpResponse};
 use serde::Deserialize;
 use sqlx::PgPool;
 use crate::database;
-use crate::models::{CreateSuspect, UpdateSuspect};
+use crate::models::{CreateSuspect, UpdateSuspect, Suspect};
+use crate::utils::logging::hash_for_logging;
 
 /// Request body for flag updates
 #[derive(Deserialize)]
@@ -20,7 +21,7 @@ async fn get_all_suspects(pool: web::Data<PgPool>) -> HttpResponse {
         Err(e) => {
             log::error!("Failed to retrieve suspects: {}", e);
             HttpResponse::InternalServerError().json(serde_json::json!({
-                "error": "Failed to retrieve suspects"
+                "error": "Service temporarily unavailable"
             }))
         }
     }
@@ -47,7 +48,7 @@ async fn get_suspect_by_id(
         Err(e) => {
             log::error!("Failed to retrieve suspect {}: {}", suspect_id, e);
             HttpResponse::InternalServerError().json(serde_json::json!({
-                "error": "Failed to retrieve suspect"
+                "error": "Service temporarily unavailable"
             }))
         }
     }
@@ -60,21 +61,29 @@ async fn get_suspect_by_personal_id(
 ) -> HttpResponse {
     let pid = personal_id.into_inner();
     
+    // Validate personal ID format
+    if !Suspect::validate_personal_id(&pid) {
+        log::warn!("Invalid personal_id format in request");
+        return HttpResponse::BadRequest().json(serde_json::json!({
+            "error": "Invalid personal_id format. Expected: YYYYMMDD-XXXX"
+        }));
+    }
+    
     match database::get_suspect_by_personal_id(&pool, &pid).await {
         Ok(Some(suspect)) => {
-            log::info!("Retrieved suspect with personal_id {}", pid);
+            log::info!("Retrieved suspect with personal_id hash: {}", hash_for_logging(&pid));
             HttpResponse::Ok().json(suspect)
         }
         Ok(None) => {
-            log::warn!("Suspect with personal_id {} not found", pid);
+            log::warn!("Suspect with personal_id hash {} not found", hash_for_logging(&pid));
             HttpResponse::NotFound().json(serde_json::json!({
                 "error": "Suspect not found"
             }))
         }
         Err(e) => {
-            log::error!("Failed to retrieve suspect with personal_id {}: {}", pid, e);
+            log::error!("Failed to retrieve suspect: {}", e);
             HttpResponse::InternalServerError().json(serde_json::json!({
-                "error": "Failed to retrieve suspect"
+                "error": "Service temporarily unavailable"
             }))
         }
     }
@@ -87,15 +96,25 @@ async fn create_suspect(
 ) -> HttpResponse {
     let suspect_data = suspect.into_inner();
     
+    // Validate personal ID format
+    if !Suspect::validate_personal_id(&suspect_data.personal_id) {
+        log::warn!("Invalid personal_id format in create request");
+        return HttpResponse::BadRequest().json(serde_json::json!({
+            "error": "Invalid personal_id format. Expected: YYYYMMDD-XXXX"
+        }));
+    }
+    
     match database::create_suspect(&pool, suspect_data).await {
         Ok(created_suspect) => {
-            log::info!("Created suspect with ID {}", created_suspect.id);
+            log::info!("Created suspect with ID {} (personal_id hash: {})", 
+                created_suspect.id,
+                hash_for_logging(&created_suspect.personal_id.as_ref().unwrap_or(&String::new())));
             HttpResponse::Created().json(created_suspect)
         }
         Err(e) => {
             log::error!("Failed to create suspect: {}", e);
             HttpResponse::InternalServerError().json(serde_json::json!({
-                "error": "Failed to create suspect"
+                "error": "Service temporarily unavailable"
             }))
         }
     }
@@ -109,6 +128,14 @@ async fn update_suspect(
 ) -> HttpResponse {
     let suspect_id = id.into_inner();
     let suspect_data = suspect.into_inner();
+    
+    // Validate personal ID format if provided
+    if !Suspect::validate_personal_id(&suspect_data.personal_id) {
+        log::warn!("Invalid personal_id format in update request");
+        return HttpResponse::BadRequest().json(serde_json::json!({
+            "error": "Invalid personal_id format. Expected: YYYYMMDD-XXXX"
+        }));
+    }
     
     match database::update_suspect(&pool, suspect_id, suspect_data).await {
         Ok(Some(updated_suspect)) => {
@@ -124,7 +151,7 @@ async fn update_suspect(
         Err(e) => {
             log::error!("Failed to update suspect {}: {}", suspect_id, e);
             HttpResponse::InternalServerError().json(serde_json::json!({
-                "error": "Failed to update suspect"
+                "error": "Service temporarily unavailable"
             }))
         }
     }
@@ -151,7 +178,7 @@ async fn delete_suspect(
         Err(e) => {
             log::error!("Failed to delete suspect {}: {}", suspect_id, e);
             HttpResponse::InternalServerError().json(serde_json::json!({
-                "error": "Failed to delete suspect"
+                "error": "Service temporarily unavailable"
             }))
         }
     }
@@ -166,25 +193,34 @@ async fn update_flag(
 ) -> HttpResponse {
     let pid = personal_id.into_inner();
     
+    // Validate personal ID format
+    if !Suspect::validate_personal_id(&pid) {
+        log::warn!("Invalid personal_id format in flag update request");
+        return HttpResponse::BadRequest().json(serde_json::json!({
+            "error": "Invalid personal_id format. Expected: YYYYMMDD-XXXX"
+        }));
+    }
+    
     match database::update_flag(&pool, &pid, flag_data.flag).await {
         Ok(Some(updated_suspect)) => {
             log::info!(
-                "Updated flag to {} for suspect with personal_id {} (will auto-sync to hospital)",
+                "Updated flag to {} for suspect with personal_id hash: {} (will auto-sync to hospital)",
                 flag_data.flag,
-                pid
+                hash_for_logging(&pid)
             );
             HttpResponse::Ok().json(updated_suspect)
         }
         Ok(None) => {
-            log::warn!("Suspect with personal_id {} not found for flag update", pid);
+            log::warn!("Suspect with personal_id hash {} not found for flag update", 
+                hash_for_logging(&pid));
             HttpResponse::NotFound().json(serde_json::json!({
                 "error": "Suspect not found"
             }))
         }
         Err(e) => {
-            log::error!("Failed to update flag for suspect {}: {}", pid, e);
+            log::error!("Failed to update flag for suspect: {}", e);
             HttpResponse::InternalServerError().json(serde_json::json!({
-                "error": "Failed to update flag"
+                "error": "Service temporarily unavailable"
             }))
         }
     }
