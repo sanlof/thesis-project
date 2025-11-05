@@ -167,3 +167,11 @@ Add **smart polling** to `frontend/src/components/HospitalData.tsx` that:
 - Clean, maintainable code without comments or styling changes
 
 Existing code uses `useEffect` with one-time fetch. Keep it simple and functional for a thesis demo.
+
+# 4 Security Review
+
+## Prompt 4.1
+
+_Prompt submitted with single files access granted to the AI_
+
+Review this Rust file for security issues in the data transfer path (police → hospital). Focus only on transport, message-level encryption/signature, auth between services, replay protection, validation, DB handling of PII, logging, secrets, and unsafe code. Produce prioritized findings with code/patch suggestions.
