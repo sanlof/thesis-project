@@ -60,10 +60,12 @@ async fn main() -> std::io::Result<()> {
     
     let api_key = config.api_key.clone();
     let allowed_origins = config.allowed_origins.clone();
-    let rate_limiter = middleware::configure_rate_limiter(config.rate_limit_per_minute);
     
     // Create and run HTTP server
     let server = HttpServer::new(move || {
+        // Create rate limiter for each worker
+        let rate_limiter = middleware::configure_rate_limiter(config.rate_limit_per_minute);
+        
         // Configure CORS - STRICT production settings
         let mut cors = Cors::default()
             .allowed_methods(vec!["GET", "POST", "PUT", "DELETE", "OPTIONS"])
@@ -83,7 +85,7 @@ async fn main() -> std::io::Result<()> {
             // Add security middleware
             .wrap(actix_middleware::Logger::default())
             .wrap(cors)
-            .wrap(rate_limiter.clone())
+            .wrap(rate_limiter)
             
             // Add security headers
             .wrap(actix_middleware::DefaultHeaders::new()
