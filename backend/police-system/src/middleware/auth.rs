@@ -51,7 +51,7 @@ pub async fn verify_api_key(req: &HttpRequest) -> Result<(), Error> {
         })?;
     
     // Constant-time comparison to prevent timing attacks
-    let is_valid = provided_key.as_bytes()
+    let is_valid: bool = provided_key.as_bytes()
         .ct_eq(valid_key.as_bytes())
         .into();
     
