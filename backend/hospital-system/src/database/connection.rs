@@ -26,7 +26,7 @@ pub async fn establish_connection() -> Result<PgPool, sqlx::Error> {
         .expect("DATABASE_URL must be set in .env file");
     
     log::info!("Attempting to connect to database...");
-    log::debug!("Database URL: {}", database_url);
+    // DO NOT LOG DATABASE URL - contains credentials
     
     // Create connection pool with configuration
     let pool = PgPoolOptions::new()
@@ -34,7 +34,7 @@ pub async fn establish_connection() -> Result<PgPool, sqlx::Error> {
         .connect(&database_url)
         .await
         .map_err(|e| {
-            log::error!("Failed to connect to database: {}", e);
+            log::error!("Failed to connect to database");
             log::error!("Please verify DATABASE_URL is correct and PostgreSQL is running");
             e
         })?;

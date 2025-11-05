@@ -3,6 +3,15 @@ use sqlx::PgPool;
 use crate::database;
 use crate::models::{CreatePatient, UpdatePatient};
 
+/// Sanitize personal ID for logging
+fn sanitize_pid_for_log(pid: &str) -> String {
+    if pid.len() >= 9 {
+        format!("{}-****", &pid[..8])
+    } else {
+        "INVALID-****".to_string()
+    }
+}
+
 /// GET /patients - Retrieve all patients
 async fn get_all_patients(pool: web::Data<PgPool>) -> HttpResponse {
     match database::get_all_patients(&pool).await {
@@ -10,8 +19,8 @@ async fn get_all_patients(pool: web::Data<PgPool>) -> HttpResponse {
             log::info!("Retrieved {} patients", patients.len());
             HttpResponse::Ok().json(patients)
         }
-        Err(e) => {
-            log::error!("Failed to retrieve patients: {}", e);
+        Err(_) => {
+            log::error!("Failed to retrieve patients");
             HttpResponse::InternalServerError().json(serde_json::json!({
                 "error": "Failed to retrieve patients"
             }))
@@ -37,8 +46,8 @@ async fn get_patient_by_id(
                 "error": "Patient not found"
             }))
         }
-        Err(e) => {
-            log::error!("Failed to retrieve patient {}: {}", patient_id, e);
+        Err(_) => {
+            log::error!("Database error retrieving patient {}", patient_id);
             HttpResponse::InternalServerError().json(serde_json::json!({
                 "error": "Failed to retrieve patient"
             }))
@@ -52,20 +61,21 @@ async fn get_patient_by_personal_id(
     personal_id: web::Path<String>,
 ) -> HttpResponse {
     let pid = personal_id.into_inner();
+    let sanitized = sanitize_pid_for_log(&pid);
     
     match database::get_patient_by_personal_id(&pool, &pid).await {
         Ok(Some(patient)) => {
-            log::info!("Retrieved patient with personal_id {}", pid);
+            log::info!("Retrieved patient with personal_id {}", sanitized);
             HttpResponse::Ok().json(patient)
         }
         Ok(None) => {
-            log::warn!("Patient with personal_id {} not found", pid);
+            log::warn!("Patient with personal_id {} not found", sanitized);
             HttpResponse::NotFound().json(serde_json::json!({
                 "error": "Patient not found"
             }))
         }
-        Err(e) => {
-            log::error!("Failed to retrieve patient with personal_id {}: {}", pid, e);
+        Err(_) => {
+            log::error!("Database error for patient {}", sanitized);
             HttpResponse::InternalServerError().json(serde_json::json!({
                 "error": "Failed to retrieve patient"
             }))
@@ -79,14 +89,15 @@ async fn create_patient(
     patient: web::Json<CreatePatient>,
 ) -> HttpResponse {
     let patient_data = patient.into_inner();
+    let sanitized = sanitize_pid_for_log(&patient_data.personal_id);
     
     match database::create_patient(&pool, patient_data).await {
         Ok(created_patient) => {
-            log::info!("Created patient with ID {}", created_patient.id);
+            log::info!("Created patient {} with ID {}", sanitized, created_patient.id);
             HttpResponse::Created().json(created_patient)
         }
-        Err(e) => {
-            log::error!("Failed to create patient: {}", e);
+        Err(_) => {
+            log::error!("Failed to create patient {}", sanitized);
             HttpResponse::InternalServerError().json(serde_json::json!({
                 "error": "Failed to create patient"
             }))
@@ -102,10 +113,11 @@ async fn update_patient(
 ) -> HttpResponse {
     let patient_id = id.into_inner();
     let patient_data = patient.into_inner();
+    let sanitized = sanitize_pid_for_log(&patient_data.personal_id);
     
     match database::update_patient(&pool, patient_id, patient_data).await {
         Ok(Some(updated_patient)) => {
-            log::info!("Updated patient with ID {}", patient_id);
+            log::info!("Updated patient {} with ID {}", sanitized, patient_id);
             HttpResponse::Ok().json(updated_patient)
         }
         Ok(None) => {
@@ -114,8 +126,8 @@ async fn update_patient(
                 "error": "Patient not found"
             }))
         }
-        Err(e) => {
-            log::error!("Failed to update patient {}: {}", patient_id, e);
+        Err(_) => {
+            log::error!("Database error updating patient {}", patient_id);
             HttpResponse::InternalServerError().json(serde_json::json!({
                 "error": "Failed to update patient"
             }))
@@ -141,8 +153,8 @@ async fn delete_patient(
                 "error": "Patient not found"
             }))
         }
-        Err(e) => {
-            log::error!("Failed to delete patient {}: {}", patient_id, e);
+        Err(_) => {
+            log::error!("Database error deleting patient {}", patient_id);
             HttpResponse::InternalServerError().json(serde_json::json!({
                 "error": "Failed to delete patient"
             }))
@@ -151,15 +163,14 @@ async fn delete_patient(
 }
 
 /// GET /patients/flagged - Retrieve all patients flagged by police system
-/// Flags are automatically synchronized from the police database via postgres_fdw triggers
 async fn get_flagged_patients(pool: web::Data<PgPool>) -> HttpResponse {
     match database::get_flagged_patients(&pool).await {
         Ok(flagged_patients) => {
             log::info!("Retrieved {} flagged patients", flagged_patients.len());
             HttpResponse::Ok().json(flagged_patients)
         }
-        Err(e) => {
-            log::error!("Failed to retrieve flagged patients: {}", e);
+        Err(_) => {
+            log::error!("Failed to retrieve flagged patients");
             HttpResponse::InternalServerError().json(serde_json::json!({
                 "error": "Failed to retrieve flagged patients"
             }))
@@ -168,12 +179,6 @@ async fn get_flagged_patients(pool: web::Data<PgPool>) -> HttpResponse {
 }
 
 /// Configure all patient-related routes
-/// 
-/// Routes are ordered with literal paths first to avoid conflicts:
-/// - /patients (GET, POST)
-/// - /patients/flagged (GET)
-/// - /patients/personal/{personal_id} (GET)
-/// - /patients/{id} (GET, PUT, DELETE)
 pub fn configure_patients(cfg: &mut web::ServiceConfig) {
     cfg.service(
         web::scope("/patients")
