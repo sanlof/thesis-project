@@ -172,6 +172,36 @@ Existing code uses `useEffect` with one-time fetch. Keep it simple and functiona
 
 ## Prompt 4.1
 
-_Prompt submitted with single files access granted to the AI_
+_Prompt submitted with backend repository access granted to the AI, one system at a time_
 
-Review this Rust file for security issues in the data transfer path (police → hospital). Focus only on transport, message-level encryption/signature, auth between services, replay protection, validation, DB handling of PII, logging, secrets, and unsafe code. Produce prioritized findings with code/patch suggestions.
+“Analyze this repository using the prompt below. This is the hospital system, which receives data from the police system.” **+ Prompt below**
+
+“Analyze this repository using the prompt below. This is the police system, which sends sensitive data to the hospital system.” **+ Prompt below**
+
+### Prompt
+
+You are a senior Rust backend security auditor with deep expertise in secure inter-service communication, cryptography, and PostgreSQL data protection.
+
+Review this repository for security issues in the data transfer path between the two backend systems (police → hospital). Focus exclusively on the confidentiality, integrity, and authenticity of sensitive data—especially personal records containing Swedish personal numbers (PII).
+
+Your review scope:
+
+- Transport security (TLS configuration, certificate validation, endpoint exposure)
+- Message-level encryption or signing (JWE/JWS, symmetric/asymmetric)
+- Service-to-service authentication and authorization
+- Replay attack prevention and nonce/timestamp usage
+- Input validation and serialization safety
+- Database handling of sensitive data (PII encryption, column-level security)
+- Logging and error handling (ensure no leakage of personal data)
+- Secrets management (no hardcoded credentials, secure env usage)
+- Unsafe Rust usage or insecure async/concurrency patterns
+
+Do not comment on unrelated code style, performance, or UX.
+
+Output a prioritized report with:
+
+1. A short overall risk summary
+2. Specific findings (severity, description, affected files/functions, and recommended mitigations)
+3. A concise action checklist for the development team
+
+If no major vulnerabilities are found, still include 3 concrete improvements for strengthening data transfer security.
