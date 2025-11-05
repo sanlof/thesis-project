@@ -205,3 +205,15 @@ Output a prioritized report with:
 3. A concise action checklist for the development team
 
 If no major vulnerabilities are found, still include 3 concrete improvements for strengthening data transfer security.
+
+## Prompt 4.1.1
+
+_Prompt submitted following 4.1 to fix found problems_
+
+You are a senior Rust backend security engineer. Based on the audit findings I provide, output ONLY the minimal file edits and new files required to fix the chosen issues.
+
+Rules:
+
+- Produce a short header list: changed files and new files (paths).
+- For each changed file, provide a unified diff (git-style) or the full new file content framed with triple backticks and the path as a filename: ```path/to/file.rs
+  <full file content>
