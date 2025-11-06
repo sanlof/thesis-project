@@ -27,6 +27,22 @@ dotenv = "0.15"
 env_logger = "0.11"
 log = "0.4"
 
+# Security
+sha2 = "0.10"
+hex = "0.4"
+constant_time_eq = "0.3"
+
+# Rate limiting
+actix-governor = "0.5"
+
+# Time utilities
+chrono = { version = "0.4", features = ["serde"] }
+regex = "1.12.2"
+lazy_static = "1.5.0"
+
+# Async utilities
+futures-util = "0.3"
+
 [profile.dev]
 opt-level = 0
 

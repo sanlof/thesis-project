@@ -6,28 +6,36 @@ use crate::database;
 /// 
 /// This endpoint allows the police system to check if a suspect has medical records
 /// by querying their personal_id (Swedish format: YYYYMMDD-XXXX)
+/// 
+/// **REQUIRES AUTHENTICATION**: X-API-Key header must be present
 async fn get_shared_patient_info(
     pool: web::Data<PgPool>,
     personal_id: web::Path<String>,
 ) -> HttpResponse {
     let pid = personal_id.into_inner();
     
-    log::info!("Shared API: Police system querying patient info for personal_id {}", pid);
+    // Sanitize log output - redact personal ID
+    let sanitized_pid = if pid.len() >= 9 {
+        format!("{}-****", &pid[..8])
+    } else {
+        "INVALID-****".to_string()
+    };
+    
+    log::info!("Shared API: Authenticated query for patient {}", sanitized_pid);
     
     match database::get_patient_by_personal_id(&pool, &pid).await {
         Ok(Some(patient)) => {
-            log::info!("Shared API: Found patient record for personal_id {}", pid);
+            log::info!("Shared API: Patient record found for {}", sanitized_pid);
             HttpResponse::Ok().json(patient)
         }
         Ok(None) => {
-            log::info!("Shared API: No patient record found for personal_id {}", pid);
+            log::info!("Shared API: No patient record for {}", sanitized_pid);
             HttpResponse::NotFound().json(serde_json::json!({
-                "error": "No patient record found",
-                "personal_id": pid
+                "error": "No patient record found"
             }))
         }
         Err(e) => {
-            log::error!("Shared API: Database error querying patient {}: {}", pid, e);
+            log::error!("Shared API: Database error for {}: {}", sanitized_pid, e);
             HttpResponse::InternalServerError().json(serde_json::json!({
                 "error": "Failed to query patient information"
             }))
@@ -39,8 +47,10 @@ async fn get_shared_patient_info(
 /// 
 /// This endpoint allows the police system to retrieve a complete list of all patients
 /// for cross-referencing with their suspect database
+/// 
+/// **REQUIRES AUTHENTICATION**: X-API-Key header must be present
 async fn get_all_shared_patients(pool: web::Data<PgPool>) -> HttpResponse {
-    log::info!("Shared API: Police system requesting all patients");
+    log::info!("Shared API: Authenticated request for all patients");
     
     match database::get_all_patients(&pool).await {
         Ok(patients) => {
@@ -48,7 +58,7 @@ async fn get_all_shared_patients(pool: web::Data<PgPool>) -> HttpResponse {
             HttpResponse::Ok().json(patients)
         }
         Err(e) => {
-            log::error!("Shared API: Database error retrieving patients: {}", e);
+            log::error!("Shared API: Database error: {}", e);
             HttpResponse::InternalServerError().json(serde_json::json!({
                 "error": "Failed to retrieve patients"
             }))
@@ -61,16 +71,18 @@ async fn get_all_shared_patients(pool: web::Data<PgPool>) -> HttpResponse {
 /// This endpoint allows the police system to see which patients in the hospital
 /// have been flagged. Flags are automatically synchronized from the police database
 /// via postgres_fdw triggers.
+/// 
+/// **REQUIRES AUTHENTICATION**: X-API-Key header must be present
 async fn get_shared_flagged_patients(pool: web::Data<PgPool>) -> HttpResponse {
-    log::info!("Shared API: Police system requesting flagged patients");
+    log::info!("Shared API: Authenticated request for flagged patients");
     
     match database::get_flagged_patients(&pool).await {
         Ok(flagged_patients) => {
-            log::info!("Shared API: Returning {} flagged patient records", flagged_patients.len());
+            log::info!("Shared API: Returning {} flagged records", flagged_patients.len());
             HttpResponse::Ok().json(flagged_patients)
         }
         Err(e) => {
-            log::error!("Shared API: Database error retrieving flagged patients: {}", e);
+            log::error!("Shared API: Database error: {}", e);
             HttpResponse::InternalServerError().json(serde_json::json!({
                 "error": "Failed to retrieve flagged patients"
             }))
@@ -83,22 +95,17 @@ async fn get_shared_flagged_patients(pool: web::Data<PgPool>) -> HttpResponse {
 /// These endpoints are designed to be called by the police system
 /// to check if suspects have medical records or to view flagged patients.
 /// 
+/// **ALL ROUTES REQUIRE API KEY AUTHENTICATION**
+/// 
 /// Routes:
-/// - GET /api/shared/patients - List all patients
-/// - GET /api/shared/patients/flagged - List flagged patients (auto-synced from police)
-/// - GET /api/shared/patients/{personal_id} - Check specific person
+/// - GET /patients - List all patients
+/// - GET /patients/flagged - List flagged patients (auto-synced from police)
+/// - GET /patients/{personal_id} - Check specific person
 /// 
-/// # CORS Configuration
-/// 
-/// These endpoints should be configured with CORS to allow requests from:
-/// - http://localhost:8000 (Police system)
-/// 
-/// CORS should be configured at the application level in main.rs using actix-cors
+/// Note: This function is now called within a scope that has ApiKeyAuth middleware applied
 pub fn configure_shared(cfg: &mut web::ServiceConfig) {
-    cfg.service(
-        web::scope("/api/shared")
-            .route("/patients", web::get().to(get_all_shared_patients))
-            .route("/patients/flagged", web::get().to(get_shared_flagged_patients))
-            .route("/patients/{personal_id}", web::get().to(get_shared_patient_info))
-    );
+    cfg
+        .route("/patients", web::get().to(get_all_shared_patients))
+        .route("/patients/flagged", web::get().to(get_shared_flagged_patients))
+        .route("/patients/{personal_id}", web::get().to(get_shared_patient_info));
 }

@@ -26,7 +26,14 @@ pub async fn establish_connection() -> Result<PgPool, sqlx::Error> {
         .expect("DATABASE_URL must be set in .env file");
     
     log::info!("Attempting to connect to database...");
-    log::debug!("Database URL: {}", database_url);
+    
+    // Extract and log only the host (not credentials)
+    if let Some(host_start) = database_url.find('@') {
+        let host_part = &database_url[host_start + 1..];
+        log::debug!("Database host: {}", host_part);
+    } else {
+        log::debug!("Connecting to database (local socket)");
+    }
     
     // Create connection pool with configuration
     let pool = PgPoolOptions::new()
