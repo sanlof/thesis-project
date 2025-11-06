@@ -1,14 +1,14 @@
 -- Seed police database
---\c police_db;
+\c police_db;
 
-CREATE TABLE IF NOT EXISTS RAC_suspects (
+CREATE TABLE IF NOT EXISTS suspects (
     id SERIAL PRIMARY KEY,
     full_name TEXT NOT NULL,
     personal_id TEXT UNIQUE NOT NULL,
     flag BOOLEAN DEFAULT FALSE
 );
 
-INSERT INTO RAC_suspects (full_name, personal_id, flag) VALUES
+INSERT INTO suspects (full_name, personal_id, flag) VALUES
     ('Erik Andersson',    '19850312-2398', FALSE),
     ('Anna Karlsson',     '19900204-1457', TRUE),
     ('Johan Lindström',   '19781123-5634', FALSE),
@@ -20,18 +20,19 @@ INSERT INTO RAC_suspects (full_name, personal_id, flag) VALUES
     ('Simon Nyberg',      '19930808-4417', TRUE),
     ('Carina Dahl',       '19870527-6675', FALSE);
 
+/*----------------------------------------*/
 
 -- Seed hospital database
---\c hospital_db;
+\c hospital_db;
 
-CREATE TABLE IF NOT EXISTS RAC_patients (
+CREATE TABLE IF NOT EXISTS patients (
     id SERIAL PRIMARY KEY,
     full_name TEXT NOT NULL,
     personal_id TEXT UNIQUE NOT NULL,
     flag BOOLEAN DEFAULT FALSE
 );
 
-INSERT INTO RAC_patients (full_name, personal_id, flag) VALUES
+INSERT INTO patients (full_name, personal_id, flag) VALUES
     ('Erik Andersson',    '19850312-2398', FALSE),
     ('Anna Karlsson',     '19900204-1457', TRUE),
     ('Johan Lindström',   '19781123-5634', FALSE),

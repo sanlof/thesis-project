@@ -78,10 +78,12 @@ psql -U postgres -f shared/database-schemas/schema.sql
 ```
 
 **Command breakdown:**
+
 - `-U postgres` - Connect as the postgres user
 - `-f shared/database-schemas/schema.sql` - Execute the SQL file
 
 This command will:
+
 - Create both `police_db` and `hospital_db` databases
 - Set up all tables and relationships
 - Configure postgres_fdw for cross-database synchronization
@@ -95,7 +97,8 @@ psql -U postgres -f shared/database-schemas/seed-data.sql
 ```
 
 This will insert:
-- 8 matching records in both `police_db.individuals` and `hospital_db.patients`
+
+- 8 matching records in both `police_db.suspects` and `hospital_db.patients`
 - 2 additional police-only records (Simon Nyberg and Carina Dahl)
 - Swedish names with Swedish personal ID format (YYYYMMDD-XXXX)
 
@@ -129,10 +132,10 @@ To exit and check the police database:
 psql -U postgres -d police_db
 ```
 
-Check the individuals data:
+Check the suspects data:
 
 ```sql
-SELECT * FROM individuals;
+SELECT * FROM suspects;
 ```
 
 To see all databases:
@@ -160,7 +163,7 @@ psql -U postgres -d police_db
 ### Update a flag in the police database:
 
 ```sql
-UPDATE individuals SET flag = true WHERE personal_id = '19850312-2398';
+UPDATE suspects SET flag = true WHERE personal_id = '19850312-2398';
 ```
 
 ### Verify it synced to the hospital database:
@@ -176,7 +179,7 @@ You should see the flag is now `true` in the hospital database as well!
 
 ```sql
 \c police_db
-UPDATE individuals SET flag = true WHERE personal_id IN ('19781123-5634', '19670630-8841');
+UPDATE suspects SET flag = true WHERE personal_id IN ('19781123-5634', '19670630-8841');
 
 \c hospital_db
 SELECT full_name, personal_id, flag FROM patients WHERE flag = true;
@@ -199,7 +202,7 @@ psql -U postgres -f shared/database-schemas/seed-data.sql
 
 ```bash
 psql -U postgres -d hospital_db -c "TRUNCATE patients RESTART IDENTITY CASCADE;"
-psql -U postgres -d police_db -c "TRUNCATE individuals RESTART IDENTITY CASCADE;"
+psql -U postgres -d police_db -c "TRUNCATE suspects RESTART IDENTITY CASCADE;"
 ```
 
 Then re-run the seed data file:
@@ -267,18 +270,18 @@ psql -U postgres -c "\du"
 
 ## Quick Reference
 
-| Action | Command |
-|--------|---------|
-| Start PostgreSQL | `brew services start postgresql` |
-| Stop PostgreSQL | `brew services stop postgresql` |
-| Run schema file | `psql -U postgres -f shared/database-schemas/schema.sql` |
-| Seed databases | `psql -U postgres -f shared/database-schemas/seed-data.sql` |
-| Connect to database | `psql -U postgres -d database_name` |
-| List databases | `\l` (inside psql prompt) |
-| List tables | `\dt` (inside psql prompt) |
-| Switch database | `\c database_name` (inside psql prompt) |
-| Exit psql | `\q` |
-| Drop database | `psql -U postgres -c "DROP DATABASE database_name;"` |
+| Action              | Command                                                     |
+| ------------------- | ----------------------------------------------------------- |
+| Start PostgreSQL    | `brew services start postgresql`                            |
+| Stop PostgreSQL     | `brew services stop postgresql`                             |
+| Run schema file     | `psql -U postgres -f shared/database-schemas/schema.sql`    |
+| Seed databases      | `psql -U postgres -f shared/database-schemas/seed-data.sql` |
+| Connect to database | `psql -U postgres -d database_name`                         |
+| List databases      | `\l` (inside psql prompt)                                   |
+| List tables         | `\dt` (inside psql prompt)                                  |
+| Switch database     | `\c database_name` (inside psql prompt)                     |
+| Exit psql           | `\q`                                                        |
+| Drop database       | `psql -U postgres -c "DROP DATABASE database_name;"`        |
 
 ## Additional Tips
 
@@ -290,4 +293,4 @@ psql -U postgres -c "\du"
 
 ---
 
-*Need more help? Check the official PostgreSQL documentation at [postgresql.org/docs](https://www.postgresql.org/docs/)*
+_Need more help? Check the official PostgreSQL documentation at [postgresql.org/docs](https://www.postgresql.org/docs/)_
