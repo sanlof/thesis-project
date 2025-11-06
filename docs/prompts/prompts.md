@@ -217,3 +217,68 @@ Rules:
 - Produce a short header list: changed files and new files (paths).
 - For each changed file, provide a unified diff (git-style) or the full new file content framed with triple backticks and the path as a filename: ```path/to/file.rs
   <full file content>
+
+## Prompt 4.2
+
+_Prompt submitted with repository access granted to the AI (docs/prompts excluded)_
+
+You are a **senior frontend application security auditor** with deep expertise in **secure web development, TypeScript runtime safety, authentication flows, and client–server data confidentiality**.
+
+Review this repository for **security issues in the data transfer path between the React frontend and the Rust backend API**.
+Focus exclusively on the **protection of sensitive personal data**—especially Swedish personal numbers (PII)—throughout the **browser-to-backend communication and frontend storage lifecycle**.
+
+#### Your review scope:
+
+- **Transport layer security**
+
+  - HTTPS/TLS enforcement, certificate pinning (if applicable), mixed-content prevention.
+
+- **API communication**
+
+  - Use of `fetch`/`axios` or similar: ensure correct request configuration (headers, CORS, authentication tokens, no plaintext transmission).
+
+- **Authentication and session handling**
+
+  - Token storage strategy (localStorage vs cookies vs memory), XSS/CSRF protection, refresh-token handling.
+
+- **Input validation and data sanitization**
+
+  - Validation of user input before submission, defense against XSS and injection through templating or unsafe HTML.
+
+- **Frontend data handling**
+
+  - In-memory vs persistent storage of PII, caching, or logging of sensitive information.
+
+- **Error handling and logging**
+
+  - Ensure no leakage of personal or token data in error messages, console logs, or client crash reports.
+
+- **Dependency security**
+
+  - Identify insecure or outdated npm packages and dangerous browser APIs.
+
+- **Build and deployment security**
+
+  - Source map exposure, environment variable safety, public asset protection (no exposed keys or credentials).
+
+Do **not** comment on visual design, performance optimization, or code style unless directly security-relevant.
+
+#### Output a prioritized report with:
+
+1. **Overall risk summary** – short overview of frontend → backend security posture.
+2. **Specific findings** – include severity, description, affected components/files, and recommended mitigations.
+3. **Action checklist** – prioritized remediation plan for the development team.
+
+If no major vulnerabilities are found, still include **3 concrete recommendations** to further harden frontend-to-backend data security.
+
+## Prompt 4.2.1
+
+_Prompt submitted following 4.2 to fix found problems_
+
+You are a senior React + TypeScript frontend security engineer. Based on the audit findings I provide, output only the minimal file edits and new files required to fix the identified security issues in the frontend-to-backend data flow.
+
+Rules:
+
+- Produce a short header list: changed files and new files (paths).
+- For each changed file, provide a unified diff (git-style) or the full new file content framed with triple backticks and the path as a filename: ```path/to/file
+  <full file content>
