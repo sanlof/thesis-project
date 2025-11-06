@@ -1,3 +1,5 @@
+# Bug Fixes
+
 Provided errors to AI followed by following prompt:
 
 ````
