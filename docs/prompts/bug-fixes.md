@@ -1,6 +1,6 @@
 # Bug Fixes
 
-## General fixes
+### General fixes
 
 Provided errors to AI followed by following prompt:
 
