@@ -524,7 +524,7 @@ For each changed file, provide a unified diff (git-style) or the full new file c
 
 ---
 
-# Generate Secrets Properly
+## Generate Secrets Properly
 
 ```bash
 # For API keys (Prompt 2)
