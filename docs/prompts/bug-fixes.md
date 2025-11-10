@@ -359,7 +359,7 @@ Requirements:
      "error": "Service temporarily unavailable",
      "correlation_id": "550e8400-e29b-41d4-a716-446655440000"
    }
-````
+   ```
 
 4. Log the correlation ID server-side with the full error details
 
@@ -385,7 +385,7 @@ Provide complete code for the error handler modules and updated handlers for ALL
 For each changed file, provide a unified diff (git-style) or the full new file content framed with triple backticks and the path as a filename: ```path/to/file
 <full file content>
 
-```
+````
 
 ---
 
@@ -393,7 +393,7 @@ For each changed file, provide a unified diff (git-style) or the full new file c
 
 ### Prompt 8: Add Comprehensive Security Headers
 
-```
+````
 
 I need to add security headers to all HTTP responses in my Rust Actix-web applications.
 
@@ -429,13 +429,13 @@ Provide the complete security headers configuration code.
 For each changed file, provide a unified diff (git-style) or the full new file content framed with triple backticks and the path as a filename: ```path/to/file
 <full file content>
 
-```
+````
 
 ---
 
 ### Prompt 9: Implement Structured Audit Logging
 
-```
+````
 
 I need to implement structured audit logging for all sensitive operations in my Rust Actix-web application.
 
@@ -476,13 +476,13 @@ Provide complete audit logging implementation and integration code.
 For each changed file, provide a unified diff (git-style) or the full new file content framed with triple backticks and the path as a filename: ```path/to/file
 <full file content>
 
-```
+````
 
 ---
 
 ### Prompt 10: Add Exponential Backoff to Frontend Polling
 
-```
+````
 
 My React frontend polls the backend every 3 seconds, but this doesn't handle errors gracefully. I need to implement exponential backoff on consecutive errors.
 
@@ -520,10 +520,11 @@ Provide the complete updated usePolling hook with exponential backoff.
 For each changed file, provide a unified diff (git-style) or the full new file content framed with triple backticks and the path as a filename: ```path/to/file
 <full file content>
 
-```
+````
 
 ---
-```
+
+````
 
 # Generate Secrets Properly
 
@@ -537,8 +538,12 @@ mkcert localhost 127.0.0.1 ::1
 
 # Production:
 certbot certonly --standalone -d yourdomain.com
-```
+````
 
 **Environment Variables**: Never commit `.env` files with real secrets.
 
 ---
+
+```
+
+```
