@@ -6,7 +6,7 @@ Provided errors to AI followed by following prompt:
 
 ````
 For each changed file, provide a unified diff (git-style) or the full new file content framed with triple backticks and the path as a filename: ```path/to/file
-  <full file content>
+<full file content>
 ````
 
 ## Full security audit
@@ -171,7 +171,6 @@ Requirements:
        personal_id: String,
        flag: bool,
    }
-````
 
 3. Update the handler to:
 
@@ -199,8 +198,7 @@ Provide complete code for all three files with the changes.
 
 For each changed file, provide a unified diff (git-style) or the full new file content framed with triple backticks and the path as a filename: ```path/to/file
 <full file content>
-
-```
+````
 
 ---
 
@@ -208,7 +206,7 @@ For each changed file, provide a unified diff (git-style) or the full new file c
 
 ### Prompt 5: Add CSRF Protection Middleware
 
-```
+````
 
 I need to add CSRF (Cross-Site Request Forgery) protection to my Rust Actix-web application for all state-changing operations (PUT, POST, DELETE).
 
@@ -265,13 +263,13 @@ Provide implementation code for all files. If actix-web-csrf doesn't exist or is
 For each changed file, provide a unified diff (git-style) or the full new file content framed with triple backticks and the path as a filename: ```path/to/file
 <full file content>
 
-```
+````
 
 ---
 
 ### Prompt 6: Implement Rate Limiting Per API Key
 
-```
+````
 
 I need to add rate limiting to my Rust Actix-web APIs, with stricter limits for inter-system API endpoints that are authenticated with API keys.
 
@@ -323,13 +321,13 @@ Provide complete code with the custom key extractor and rate limiter configurati
 For each changed file, provide a unified diff (git-style) or the full new file content framed with triple backticks and the path as a filename: ```path/to/file
 <full file content>
 
-```
+````
 
 ---
 
 ### Prompt 7: Sanitize Error Messages and Remove Information Disclosure
 
-```
+````
 
 My Rust Actix-web API currently returns detailed error messages that expose internal implementation details. I need to sanitize these error responses while maintaining detailed server-side logging.
 
@@ -361,7 +359,7 @@ Requirements:
      "error": "Service temporarily unavailable",
      "correlation_id": "550e8400-e29b-41d4-a716-446655440000"
    }
-   ```
+````
 
 4. Log the correlation ID server-side with the full error details
 
