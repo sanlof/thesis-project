@@ -7,6 +7,10 @@ mod config;
 use actix_web::{web, App, HttpServer, middleware as actix_middleware};
 use actix_cors::Cors;
 use config::Config;
+use std::fs::File;
+use std::io::BufReader;
+use rustls::{Certificate, PrivateKey, ServerConfig};
+use rustls_pemfile::{certs, pkcs8_private_keys};
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
@@ -55,13 +59,13 @@ async fn main() -> std::io::Result<()> {
     log::info!("   - GET    /api/shared/patients/flagged (Authenticated)");
     log::info!("   - GET    /api/shared/patients/{{personal_id}} (Authenticated)");
     
-    log::info!("🚀 Starting HTTP server at http://{}", server_address);
     log::info!("🔒 API Key authentication required for /api/shared/* endpoints");
     
     let api_key = config.api_key.clone();
     let allowed_origins = config.allowed_origins.clone();
+    let enable_tls = config.enable_tls;
     
-    // Create and run HTTP server
+    // Create HTTP server
     let server = HttpServer::new(move || {
         // Create rate limiter for each worker
         let rate_limiter = middleware::configure_rate_limiter(config.rate_limit_per_minute);
@@ -112,22 +116,130 @@ async fn main() -> std::io::Result<()> {
             .route("/health", web::get().to(health_check))
     });
     
-    // Bind server with optional TLS
-    let server = if config.enable_tls {
-        log::info!("🔐 TLS enabled");
-        // In production, you would use:
-        // server.bind_rustls(&server_address, load_rustls_config(&config))?
-        // For now, we'll just bind normally and log a warning
-        log::warn!("⚠️  TLS binding not implemented yet - using HTTP");
-        server.bind(&server_address)?
+    // Bind server with or without TLS
+    if enable_tls {
+        log::info!("🔐 TLS enabled - loading certificates...");
+        
+        let tls_config = load_tls_config(&config)?;
+        
+        log::info!("🚀 Starting HTTPS server at https://{}", server_address);
+        
+        server
+            .bind_rustls_021(&server_address, tls_config)
+            .map_err(|e| {
+                log::error!("❌ Failed to bind HTTPS server to {}: {}", server_address, e);
+                e
+            })?
+            .run()
+            .await?;
     } else {
-        server.bind(&server_address)?
-    };
-    
-    server.run().await?;
+        log::info!("🚀 Starting HTTP server at http://{}", server_address);
+        
+        server
+            .bind(&server_address)
+            .map_err(|e| {
+                log::error!("❌ Failed to bind HTTP server to {}: {}", server_address, e);
+                e
+            })?
+            .run()
+            .await?;
+    }
     
     log::info!("🛑 Hospital System shut down");
     Ok(())
+}
+
+/// Load TLS configuration from certificate and key files
+fn load_tls_config(config: &Config) -> std::io::Result<ServerConfig> {
+    let cert_path = config.tls_cert_path.as_ref()
+        .ok_or_else(|| {
+            log::error!("TLS_CERT_PATH not configured");
+            std::io::Error::new(
+                std::io::ErrorKind::NotFound,
+                "TLS_CERT_PATH not set"
+            )
+        })?;
+    
+    let key_path = config.tls_key_path.as_ref()
+        .ok_or_else(|| {
+            log::error!("TLS_KEY_PATH not configured");
+            std::io::Error::new(
+                std::io::ErrorKind::NotFound,
+                "TLS_KEY_PATH not set"
+            )
+        })?;
+    
+    log::info!("Loading certificate from: {}", cert_path);
+    log::info!("Loading private key from: {}", key_path);
+    
+    // Load certificate chain
+    let cert_file = File::open(cert_path)
+        .map_err(|e| {
+            log::error!("Failed to open certificate file '{}': {}", cert_path, e);
+            e
+        })?;
+    let mut cert_reader = BufReader::new(cert_file);
+    
+    let cert_chain: Vec<Certificate> = certs(&mut cert_reader)
+        .map_err(|e| {
+            log::error!("Failed to parse certificate file: {}", e);
+            std::io::Error::new(std::io::ErrorKind::InvalidData, e)
+        })?
+        .into_iter()
+        .map(Certificate)
+        .collect();
+    
+    if cert_chain.is_empty() {
+        log::error!("No certificates found in '{}'", cert_path);
+        return Err(std::io::Error::new(
+            std::io::ErrorKind::InvalidData,
+            "No certificates found in certificate file"
+        ));
+    }
+    
+    log::info!("✅ Loaded {} certificate(s)", cert_chain.len());
+    
+    // Load private key
+    let key_file = File::open(key_path)
+        .map_err(|e| {
+            log::error!("Failed to open private key file '{}': {}", key_path, e);
+            e
+        })?;
+    let mut key_reader = BufReader::new(key_file);
+    
+    let mut keys: Vec<PrivateKey> = pkcs8_private_keys(&mut key_reader)
+        .map_err(|e| {
+            log::error!("Failed to parse private key file: {}", e);
+            std::io::Error::new(std::io::ErrorKind::InvalidData, e)
+        })?
+        .into_iter()
+        .map(PrivateKey)
+        .collect();
+    
+    if keys.is_empty() {
+        log::error!("No private keys found in '{}'", key_path);
+        return Err(std::io::Error::new(
+            std::io::ErrorKind::InvalidData,
+            "No private keys found in key file"
+        ));
+    }
+    
+    let private_key = keys.remove(0);
+    log::info!("✅ Loaded private key");
+    
+    // Build TLS configuration
+    let tls_config = ServerConfig::builder()
+        .with_safe_defaults()
+        .with_no_client_auth()
+        .with_single_cert(cert_chain, private_key)
+        .map_err(|e| {
+            log::error!("Failed to build TLS configuration: {}", e);
+            std::io::Error::new(std::io::ErrorKind::InvalidInput, e)
+        })?;
+    
+    log::info!("✅ TLS configuration loaded successfully");
+    
+    Ok(tls_config)
 }
 
 /// Health check endpoint

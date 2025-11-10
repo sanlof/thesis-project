@@ -6,8 +6,8 @@ authors = ["Your Name <your.email@example.com>"]
 description = "Hospital backend service for thesis project"
 
 [dependencies]
-# Web framework
-actix-web = "4"
+# Web framework with rustls support
+actix-web = { version = "4", features = ["rustls-0_21"] }
 actix-cors = "0.7"
 
 # Database
@@ -42,6 +42,10 @@ lazy_static = "1.5.0"
 
 # Async utilities
 futures-util = "0.3"
+
+# TLS support
+rustls = "0.21"
+rustls-pemfile = "1.0"
 
 [profile.dev]
 opt-level = 0
