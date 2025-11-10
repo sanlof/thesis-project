@@ -224,4 +224,21 @@ Rules:
 
 _Prompt submitted with repository access granted to the AI (docs/prompts excluded)_
 
-TBA
+You are a security auditor specializing in Rust, Actix Web, and React + TypeScript applications. Audit the following project for data security vulnerabilities.
+
+The project consists of two Rust Actix backend systems — **police** and **hospital** — and a React + TypeScript frontend. The purpose is to test whether AI-generated code can securely handle data transfer between the systems.
+
+Context:
+
+- Both backends handle fake Swedish personal data (PII) and allow flagging a person in the police system, which should reflect as flagged in the hospital system.
+- The entire system runs **only on localhost** for testing (no live deployment).
+- There is **no authentication or login system** — assume the user is already authenticated.
+- The main goal is to ensure **secure data transfer** between frontend → police backend → hospital backend → frontend.
+- Focus only on **data transmission security**, not UI or authentication.
+
+Tasks:
+
+1. Identify any potential security vulnerabilities in data handling and transfer between the systems.
+2. Check for insecure defaults, missing encryption, unsafe serialization/deserialization, or data exposure.
+3. Suggest concrete improvements (code-level or configuration) to make the data transfer secure.
+4. Assume the repo content follows below.
