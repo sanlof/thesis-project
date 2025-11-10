@@ -1,7 +1,6 @@
-use actix_web::{web, HttpRequest, HttpResponse};
+use actix_web::{web, HttpResponse};
 use sqlx::PgPool;
 use crate::database;
-use crate::middleware::auth::verify_api_key;
 use crate::utils::logging::hash_for_logging;
 use crate::models::Suspect;
 
@@ -12,16 +11,9 @@ use crate::models::Suspect;
 /// 
 /// SECURITY: Requires valid API key in X-API-Key header
 async fn get_shared_suspect_info(
-    req: HttpRequest,
     pool: web::Data<PgPool>,
     personal_id: web::Path<String>,
 ) -> HttpResponse {
-    // Verify API key authentication
-    if let Err(e) = verify_api_key(&req).await {
-        log::warn!("Unauthorized shared API access attempt");
-        return e.into();
-    }
-    
     let pid = personal_id.into_inner();
     
     // Validate personal ID format
@@ -64,15 +56,8 @@ async fn get_shared_suspect_info(
 /// 
 /// SECURITY: Requires valid API key in X-API-Key header
 async fn get_all_shared_suspects(
-    req: HttpRequest,
     pool: web::Data<PgPool>
 ) -> HttpResponse {
-    // Verify API key authentication
-    if let Err(e) = verify_api_key(&req).await {
-        log::warn!("Unauthorized shared API access attempt");
-        return e.into();
-    }
-    
     log::info!("Shared API: Hospital system requesting all suspects");
     
     match database::get_all_suspects(&pool).await {
@@ -104,9 +89,7 @@ async fn get_all_shared_suspects(
 /// Rate limiting is applied at the application level.
 /// Input validation enforces Swedish personal ID format.
 pub fn configure_shared(cfg: &mut web::ServiceConfig) {
-    cfg.service(
-        web::scope("/api/shared")
-            .route("/suspects", web::get().to(get_all_shared_suspects))
-            .route("/suspects/{personal_id}", web::get().to(get_shared_suspect_info))
-    );
+    cfg
+        .route("/suspects", web::get().to(get_all_shared_suspects))
+        .route("/suspects/{personal_id}", web::get().to(get_shared_suspect_info));
 }

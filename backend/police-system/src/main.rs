@@ -23,7 +23,7 @@ async fn main() -> std::io::Result<()> {
     
     log::info!("🚔 Police System Starting...");
     
-    // Validate required security configuration
+    // Validate security configuration
     validate_security_config();
     
     // Read server configuration
@@ -36,6 +36,23 @@ async fn main() -> std::io::Result<()> {
         .unwrap_or_else(|_| "false".to_string())
         .parse::<bool>()
         .unwrap_or(false);
+    
+    // Get API key for validating incoming requests from hospital
+    let api_key = env::var("API_KEY")
+        .expect("API_KEY must be set for shared endpoint authentication");
+    
+    if api_key.len() < 32 {
+        panic!("API_KEY must be at least 32 characters long");
+    }
+    
+    log::info!("✅ Security configuration loaded");
+    log::info!("   - API Key authentication: ENABLED for shared endpoints");
+    log::info!("   - TLS: {}", if enable_tls { "ENABLED" } else { "DISABLED (dev only)" });
+    
+    if !enable_tls {
+        log::warn!("⚠️  TLS is DISABLED - This is only acceptable in development!");
+        log::warn!("⚠️  Enable TLS in production by setting ENABLE_TLS=true");
+    }
     
     // Establish database connection
     log::info!("Connecting to database...");
@@ -61,8 +78,8 @@ async fn main() -> std::io::Result<()> {
     log::info!("   - DELETE /suspects/{{id}}");
     log::info!("   - GET    /suspects/personal/{{personal_id}}");
     log::info!("   - PUT    /suspects/{{personal_id}}/flag");
-    log::info!("   - GET    /api/shared/suspects");
-    log::info!("   - GET    /api/shared/suspects/{{personal_id}}");
+    log::info!("   - GET    /api/shared/suspects (Authenticated)");
+    log::info!("   - GET    /api/shared/suspects/{{personal_id}} (Authenticated)");
     
     let hospital_origin = env::var("HOSPITAL_ORIGIN")
         .unwrap_or_else(|_| {
@@ -71,7 +88,7 @@ async fn main() -> std::io::Result<()> {
         });
     
     log::info!("🔗 CORS enabled for hospital system at {}", hospital_origin);
-    log::info!("🔐 API key authentication enabled for shared endpoints");
+    log::info!("🔒 API key authentication enabled for /api/shared/* endpoints");
     log::info!("⏱️  Rate limiting: 10 req/s, burst 20");
     
     // Create HTTP server
@@ -82,10 +99,13 @@ async fn main() -> std::io::Result<()> {
             Cors::default()
                 .allowed_origin("http://localhost:8001")
                 .allowed_origin("http://127.0.0.1:8001")
+                .allowed_origin("http://localhost:3000")
+                .allowed_origin("http://127.0.0.1:3000")
                 .allowed_methods(vec!["GET", "POST", "PUT", "DELETE", "OPTIONS"])
                 .allowed_headers(vec![
                     actix_web::http::header::CONTENT_TYPE,
                     actix_web::http::header::AUTHORIZATION,
+                    actix_web::http::header::HeaderName::from_static("x-api-key"),
                 ])
                 .expose_headers(vec![actix_web::http::header::CONTENT_TYPE])
                 .max_age(3600)
@@ -96,6 +116,7 @@ async fn main() -> std::io::Result<()> {
                 .allowed_headers(vec![
                     actix_web::http::header::CONTENT_TYPE,
                     actix_web::http::header::AUTHORIZATION,
+                    actix_web::http::header::HeaderName::from_static("x-api-key"),
                 ])
                 .expose_headers(vec![actix_web::http::header::CONTENT_TYPE])
                 .max_age(3600)
@@ -107,12 +128,26 @@ async fn main() -> std::io::Result<()> {
             .wrap(cors)
             .wrap(Governor::new(&governor_conf))
             
+            // Add security headers
+            .wrap(actix_middleware::DefaultHeaders::new()
+                .add(("X-Content-Type-Options", "nosniff"))
+                .add(("X-Frame-Options", "DENY"))
+                .add(("X-XSS-Protection", "1; mode=block"))
+                .add(("Strict-Transport-Security", "max-age=31536000; includeSubDomains"))
+            )
+            
             // Share database pool across all handlers
             .app_data(web::Data::new(pool.clone()))
             
             // Configure API routes
             .configure(api::configure_suspects)
-            .configure(api::configure_shared)
+            
+            // Shared API routes with authentication
+            .service(
+                web::scope("/api/shared")
+                    .wrap(middleware::ApiKeyAuth::new(api_key.clone()))
+                    .configure(api::configure_shared)
+            )
             
             // Health check endpoint
             .route("/health", web::get().to(health_check))
@@ -135,10 +170,6 @@ async fn main() -> std::io::Result<()> {
             .run()
             .await?;
     } else {
-        log::warn!("⚠️  TLS is DISABLED - using HTTP only");
-        log::warn!("⚠️  This is acceptable only in development!");
-        log::warn!("⚠️  Set ENABLE_TLS=true in production");
-        
         log::info!("🚀 Starting HTTP server at http://{}", server_address);
         
         server
@@ -251,14 +282,21 @@ fn load_tls_config() -> std::io::Result<ServerConfig> {
 
 /// Validate that required security configuration is present
 fn validate_security_config() {
-    // Check for API key in production
+    // Check for API key
+    let api_key = env::var("API_KEY");
+    
     if !cfg!(debug_assertions) {
-        env::var("HOSPITAL_API_KEY")
-            .expect("HOSPITAL_API_KEY must be set in production");
-        
+        // Production mode - API key is required
+        api_key.expect("API_KEY must be set in production");
         log::info!("✅ Security configuration validated");
     } else {
-        log::warn!("⚠️  Running in DEBUG mode - ensure HOSPITAL_API_KEY is set for production");
+        // Debug mode - warn if API key is missing
+        if api_key.is_err() {
+            log::warn!("⚠️  Running in DEBUG mode - API_KEY not set");
+            log::warn!("⚠️  Set API_KEY for production deployment");
+        } else {
+            log::info!("✅ API_KEY configured (debug mode)");
+        }
     }
 }
 
