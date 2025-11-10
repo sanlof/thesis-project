@@ -524,8 +524,6 @@ For each changed file, provide a unified diff (git-style) or the full new file c
 
 ---
 
-````
-
 # Generate Secrets Properly
 
 ```bash
@@ -538,12 +536,6 @@ mkcert localhost 127.0.0.1 ::1
 
 # Production:
 certbot certonly --standalone -d yourdomain.com
-````
+```
 
 **Environment Variables**: Never commit `.env` files with real secrets.
-
----
-
-```
-
-```
