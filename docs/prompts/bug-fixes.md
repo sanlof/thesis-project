@@ -45,7 +45,7 @@ Files to modify:
 Please provide the complete implementation with code for all files.
 
 For each changed file, provide a unified diff (git-style) or the full new file content framed with triple backticks and the path as a filename: ```path/to/file
-  <full file content>
+<full file content>
 ````
 
 ---
@@ -97,7 +97,7 @@ Files to modify:
 Provide complete code for all authentication middleware and endpoint modifications.
 
 For each changed file, provide a unified diff (git-style) or the full new file content framed with triple backticks and the path as a filename: ```path/to/file
-  <full file content>
+<full file content>
 ````
 
 ---
@@ -143,7 +143,7 @@ Files to modify:
 Provide complete CORS configuration code for both services.
 
 For each changed file, provide a unified diff (git-style) or the full new file content framed with triple backticks and the path as a filename: ```path/to/file
-  <full file content>
+<full file content>
 ````
 
 ---
@@ -524,7 +524,7 @@ For each changed file, provide a unified diff (git-style) or the full new file c
 
 ---
 
-## Generate Secrets Properly
+### Generate Secrets Properly
 
 ```bash
 # For API keys (Prompt 2)
