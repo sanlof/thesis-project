@@ -28,14 +28,22 @@ impl Config {
             return Err("API_KEY must be at least 32 characters long".to_string());
         }
         
-        let allowed_origins_str = env::var("ALLOWED_SERVICE_ORIGINS")
-            .unwrap_or_else(|_| "http://localhost:8000".to_string());
+        // Parse allowed origins from environment variable
+        let allowed_origins_str = env::var("ALLOWED_ORIGINS")
+            .unwrap_or_else(|_| {
+                log::warn!("ALLOWED_ORIGINS not set, using default development origins");
+                "http://localhost:8000,http://localhost:3000,http://127.0.0.1:8000,http://127.0.0.1:3000".to_string()
+            });
         
         let allowed_origins: Vec<String> = allowed_origins_str
             .split(',')
             .map(|s| s.trim().to_string())
             .filter(|s| !s.is_empty())
             .collect();
+        
+        if allowed_origins.is_empty() {
+            return Err("ALLOWED_ORIGINS must contain at least one valid origin".to_string());
+        }
         
         let rate_limit_per_minute = env::var("RATE_LIMIT_REQUESTS_PER_MINUTE")
             .unwrap_or_else(|_| "60".to_string())

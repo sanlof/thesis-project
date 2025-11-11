@@ -45,9 +45,42 @@ async fn main() -> std::io::Result<()> {
         panic!("API_KEY must be at least 32 characters long");
     }
     
+    // Parse allowed origins from environment variable
+    let allowed_origins_str = env::var("ALLOWED_ORIGINS")
+        .unwrap_or_else(|_| {
+            log::warn!("ALLOWED_ORIGINS not set, using default development origins");
+            "http://localhost:8001,http://localhost:3000,http://127.0.0.1:8001,http://127.0.0.1:3000".to_string()
+        });
+    
+    let allowed_origins: Vec<String> = allowed_origins_str
+        .split(',')
+        .map(|s| s.trim().to_string())
+        .filter(|s| !s.is_empty())
+        .collect();
+    
+    if allowed_origins.is_empty() {
+        panic!("ALLOWED_ORIGINS must contain at least one valid origin");
+    }
+    
     log::info!("✅ Security configuration loaded");
     log::info!("   - API Key authentication: ENABLED for shared endpoints");
     log::info!("   - TLS: {}", if enable_tls { "ENABLED" } else { "DISABLED (dev only)" });
+    log::info!("   - Allowed CORS origins: {:?}", allowed_origins);
+    
+    // Validate origins in production
+    if !cfg!(debug_assertions) {
+        for origin in &allowed_origins {
+            if origin.starts_with("http://") {
+                log::error!("❌ PRODUCTION ERROR: HTTP origin detected: {}", origin);
+                panic!("Production mode requires HTTPS origins only. Found HTTP origin: {}", origin);
+            }
+            if origin.contains("localhost") || origin.contains("127.0.0.1") {
+                log::error!("❌ PRODUCTION ERROR: localhost origin detected: {}", origin);
+                panic!("Production mode cannot use localhost origins. Found: {}", origin);
+            }
+        }
+        log::info!("✅ All origins validated for production (HTTPS only)");
+    }
     
     if !enable_tls {
         log::warn!("⚠️  TLS is DISABLED - This is only acceptable in development!");
@@ -81,49 +114,33 @@ async fn main() -> std::io::Result<()> {
     log::info!("   - GET    /api/shared/suspects (Authenticated)");
     log::info!("   - GET    /api/shared/suspects/{{personal_id}} (Authenticated)");
     
-    let hospital_origin = env::var("HOSPITAL_ORIGIN")
-        .unwrap_or_else(|_| {
-            log::warn!("HOSPITAL_ORIGIN not set, using localhost:8001");
-            "http://localhost:8001".to_string()
-        });
-    
-    log::info!("🔗 CORS enabled for hospital system at {}", hospital_origin);
-    log::info!("🔒 API key authentication enabled for /api/shared/* endpoints");
+    log::info!("🔒 API Key authentication required for /api/shared/* endpoints");
     log::info!("⏱️  Rate limiting: 10 req/s, burst 20");
+    
+    // Clone variables for move into closure
+    let allowed_origins_clone = allowed_origins.clone();
     
     // Create HTTP server
     let server = HttpServer::new(move || {
-        // Configure CORS for cross-origin requests from hospital system
-        let cors = if cfg!(debug_assertions) {
-            log::warn!("⚠️  Running in DEBUG mode with relaxed CORS");
-            Cors::default()
-                .allowed_origin("http://localhost:8001")
-                .allowed_origin("http://127.0.0.1:8001")
-                .allowed_origin("http://localhost:3000")
-                .allowed_origin("http://127.0.0.1:3000")
-                .allowed_methods(vec!["GET", "POST", "PUT", "DELETE", "OPTIONS"])
-                .allowed_headers(vec![
-                    actix_web::http::header::CONTENT_TYPE,
-                    actix_web::http::header::AUTHORIZATION,
-                    actix_web::http::header::HeaderName::from_static("x-api-key"),
-                ])
-                .expose_headers(vec![actix_web::http::header::CONTENT_TYPE])
-                .max_age(3600)
-        } else {
-            Cors::default()
-                .allowed_origin(&hospital_origin)
-                .allowed_methods(vec!["GET", "POST", "PUT", "DELETE", "OPTIONS"])
-                .allowed_headers(vec![
-                    actix_web::http::header::CONTENT_TYPE,
-                    actix_web::http::header::AUTHORIZATION,
-                    actix_web::http::header::HeaderName::from_static("x-api-key"),
-                ])
-                .expose_headers(vec![actix_web::http::header::CONTENT_TYPE])
-                .max_age(3600)
-        };
+        // Configure CORS with strict origin whitelist
+        let mut cors = Cors::default()
+            .allowed_methods(vec!["GET", "POST", "PUT", "DELETE", "OPTIONS"])
+            .allowed_headers(vec![
+                actix_web::http::header::CONTENT_TYPE,
+                actix_web::http::header::AUTHORIZATION,
+                actix_web::http::header::HeaderName::from_static("x-api-key"),
+            ])
+            .expose_headers(vec![actix_web::http::header::CONTENT_TYPE])
+            .max_age(3600)
+            .supports_credentials();
+        
+        // Add each allowed origin explicitly (no wildcards)
+        for origin in &allowed_origins_clone {
+            cors = cors.allowed_origin(origin);
+        }
         
         App::new()
-            // Add middleware
+            // Add security middleware
             .wrap(actix_middleware::Logger::default())
             .wrap(cors)
             .wrap(Governor::new(&governor_conf))
@@ -160,6 +177,7 @@ async fn main() -> std::io::Result<()> {
         let tls_config = load_tls_config()?;
         
         log::info!("🚀 Starting HTTPS server at https://{}", server_address);
+        log::info!("🔒 CORS restricted to: {:?}", allowed_origins);
         
         server
             .bind_rustls_021(&server_address, tls_config)
@@ -171,6 +189,7 @@ async fn main() -> std::io::Result<()> {
             .await?;
     } else {
         log::info!("🚀 Starting HTTP server at http://{}", server_address);
+        log::info!("🔒 CORS restricted to: {:?}", allowed_origins);
         
         server
             .bind(&server_address)

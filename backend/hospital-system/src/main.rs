@@ -30,6 +30,22 @@ async fn main() -> std::io::Result<()> {
     log::info!("   - API Key authentication: ENABLED");
     log::info!("   - Rate limiting: {} req/min", config.rate_limit_per_minute);
     log::info!("   - TLS: {}", if config.enable_tls { "ENABLED" } else { "DISABLED (dev only)" });
+    log::info!("   - Allowed CORS origins: {:?}", config.allowed_origins);
+    
+    // Validate origins in production
+    if !cfg!(debug_assertions) {
+        for origin in &config.allowed_origins {
+            if origin.starts_with("http://") {
+                log::error!("❌ PRODUCTION ERROR: HTTP origin detected: {}", origin);
+                panic!("Production mode requires HTTPS origins only. Found HTTP origin: {}", origin);
+            }
+            if origin.contains("localhost") || origin.contains("127.0.0.1") {
+                log::error!("❌ PRODUCTION ERROR: localhost origin detected: {}", origin);
+                panic!("Production mode cannot use localhost origins. Found: {}", origin);
+            }
+        }
+        log::info!("✅ All origins validated for production (HTTPS only)");
+    }
     
     if !config.enable_tls {
         log::warn!("⚠️  TLS is DISABLED - This is only acceptable in development!");
@@ -65,12 +81,15 @@ async fn main() -> std::io::Result<()> {
     let allowed_origins = config.allowed_origins.clone();
     let enable_tls = config.enable_tls;
     
+    // Clone for use inside the closure
+    let allowed_origins_clone = allowed_origins.clone();
+    
     // Create HTTP server
     let server = HttpServer::new(move || {
         // Create rate limiter for each worker
         let rate_limiter = middleware::configure_rate_limiter(config.rate_limit_per_minute);
         
-        // Configure CORS - STRICT production settings
+        // Configure CORS with strict origin whitelist
         let mut cors = Cors::default()
             .allowed_methods(vec!["GET", "POST", "PUT", "DELETE", "OPTIONS"])
             .allowed_headers(vec![
@@ -78,10 +97,12 @@ async fn main() -> std::io::Result<()> {
                 actix_web::http::header::AUTHORIZATION,
                 actix_web::http::header::HeaderName::from_static("x-api-key"),
             ])
-            .max_age(3600);
+            .expose_headers(vec![actix_web::http::header::CONTENT_TYPE])
+            .max_age(3600)
+            .supports_credentials();
         
-        // Only allow specific origins (no wildcard)
-        for origin in &allowed_origins {
+        // Add each allowed origin explicitly (no wildcards)
+        for origin in &allowed_origins_clone {
             cors = cors.allowed_origin(origin);
         }
         
@@ -123,6 +144,7 @@ async fn main() -> std::io::Result<()> {
         let tls_config = load_tls_config(&config)?;
         
         log::info!("🚀 Starting HTTPS server at https://{}", server_address);
+        log::info!("🔒 CORS restricted to: {:?}", allowed_origins);
         
         server
             .bind_rustls_021(&server_address, tls_config)
@@ -134,6 +156,7 @@ async fn main() -> std::io::Result<()> {
             .await?;
     } else {
         log::info!("🚀 Starting HTTP server at http://{}", server_address);
+        log::info!("🔒 CORS restricted to: {:?}", allowed_origins);
         
         server
             .bind(&server_address)
