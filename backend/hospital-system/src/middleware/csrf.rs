@@ -90,7 +90,7 @@ where
                 }
                 
                 // Store cookie in request extensions for response
-                req.extensions_mut().insert(cookie);
+                req.extensions_mut().insert(cookie.clone());
             }
             
             let fut = self.service.call(req);
@@ -98,8 +98,10 @@ where
                 let mut res = fut.await?;
                 
                 // Add cookie to response if present in extensions
-                if let Some(cookie) = res.request().extensions().get::<Cookie>() {
-                    res.response_mut().add_cookie(cookie).ok();
+                // Clone the cookie from extensions to avoid borrow issues
+                let cookie_opt = res.request().extensions().get::<Cookie>().cloned();
+                if let Some(cookie) = cookie_opt {
+                    res.response_mut().add_cookie(&cookie).ok();
                 }
                 
                 Ok(res.map_into_boxed_body())
