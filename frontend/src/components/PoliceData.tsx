@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Suspect, FlagUpdate } from "../types";
+import { Suspect, FlagUpdateRequest } from "../types";
 
 function PoliceData() {
   const [suspects, setSuspects] = useState<Suspect[]>([]);
@@ -46,20 +46,19 @@ function PoliceData() {
       setTogglingId(suspect.personal_id);
       setToggleError(null);
 
-      const flagUpdate: FlagUpdate = {
+      // SECURITY IMPROVEMENT: personal_id is now in request body instead of URL
+      const flagUpdate: FlagUpdateRequest = {
+        personal_id: suspect.personal_id,
         flag: newFlagValue,
       };
 
-      const response = await fetch(
-        `/api/police/suspects/${suspect.personal_id}/flag`,
-        {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(flagUpdate),
-        }
-      );
+      const response = await fetch("/api/police/suspects/flag", {
+        method: "POST", // Changed from PUT to POST
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(flagUpdate),
+      });
 
       if (!response.ok) {
         throw new Error(`Failed to update flag: ${response.status}`);

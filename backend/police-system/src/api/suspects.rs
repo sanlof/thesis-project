@@ -5,9 +5,10 @@ use crate::database;
 use crate::models::{CreateSuspect, UpdateSuspect, Suspect};
 use crate::utils::logging::hash_for_logging;
 
-/// Request body for flag updates
+/// Request body for flag updates - now includes personal_id
 #[derive(Deserialize)]
-struct FlagUpdate {
+struct FlagUpdateRequest {
+    personal_id: String,
     flag: bool,
 }
 
@@ -184,35 +185,38 @@ async fn delete_suspect(
     }
 }
 
-/// PUT /suspects/{personal_id}/flag - Update flag status
+/// POST /suspects/flag - Update flag status
+/// 
+/// SECURITY IMPROVEMENT: Moved personal_id from URL path to request body
+/// to prevent logging of sensitive data in browser history and server logs.
+/// 
 /// This triggers automatic synchronization to the hospital database via postgres_fdw
 async fn update_flag(
     pool: web::Data<PgPool>,
-    personal_id: web::Path<String>,
-    flag_data: web::Json<FlagUpdate>,
+    flag_data: web::Json<FlagUpdateRequest>,
 ) -> HttpResponse {
-    let pid = personal_id.into_inner();
+    let request = flag_data.into_inner();
     
     // Validate personal ID format
-    if !Suspect::validate_personal_id(&pid) {
+    if !Suspect::validate_personal_id(&request.personal_id) {
         log::warn!("Invalid personal_id format in flag update request");
         return HttpResponse::BadRequest().json(serde_json::json!({
             "error": "Invalid personal_id format. Expected: YYYYMMDD-XXXX"
         }));
     }
     
-    match database::update_flag(&pool, &pid, flag_data.flag).await {
+    match database::update_flag(&pool, &request.personal_id, request.flag).await {
         Ok(Some(updated_suspect)) => {
             log::info!(
                 "Updated flag to {} for suspect with personal_id hash: {} (will auto-sync to hospital)",
-                flag_data.flag,
-                hash_for_logging(&pid)
+                request.flag,
+                hash_for_logging(&request.personal_id)
             );
             HttpResponse::Ok().json(updated_suspect)
         }
         Ok(None) => {
             log::warn!("Suspect with personal_id hash {} not found for flag update", 
-                hash_for_logging(&pid));
+                hash_for_logging(&request.personal_id));
             HttpResponse::NotFound().json(serde_json::json!({
                 "error": "Suspect not found"
             }))
@@ -230,16 +234,16 @@ async fn update_flag(
 /// 
 /// Routes are ordered with literal paths first to avoid conflicts:
 /// - /suspects (GET, POST)
+/// - /suspects/flag (POST) - UPDATED: no longer includes personal_id in path
 /// - /suspects/personal/{personal_id} (GET)
-/// - /suspects/{personal_id}/flag (PUT)
 /// - /suspects/{id} (GET, PUT, DELETE)
 pub fn configure_suspects(cfg: &mut web::ServiceConfig) {
     cfg.service(
         web::scope("/suspects")
             .route("", web::get().to(get_all_suspects))
             .route("", web::post().to(create_suspect))
+            .route("/flag", web::post().to(update_flag))  // Changed from PUT with path param to POST
             .route("/personal/{personal_id}", web::get().to(get_suspect_by_personal_id))
-            .route("/{personal_id}/flag", web::put().to(update_flag))
             .route("/{id}", web::get().to(get_suspect_by_id))
             .route("/{id}", web::put().to(update_suspect))
             .route("/{id}", web::delete().to(delete_suspect))
