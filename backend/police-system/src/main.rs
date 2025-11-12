@@ -64,6 +64,7 @@ async fn main() -> std::io::Result<()> {
     
     log::info!("✅ Security configuration loaded");
     log::info!("   - API Key authentication: ENABLED for shared endpoints");
+    log::info!("   - CSRF protection: ENABLED for state-changing operations");
     log::info!("   - TLS: {}", if enable_tls { "ENABLED" } else { "DISABLED (dev only)" });
     log::info!("   - Allowed CORS origins: {:?}", allowed_origins);
     
@@ -105,20 +106,22 @@ async fn main() -> std::io::Result<()> {
     // Log available routes
     log::info!("📋 Configuring routes:");
     log::info!("   - GET    /suspects");
-    log::info!("   - POST   /suspects");
+    log::info!("   - POST   /suspects (CSRF protected)");
     log::info!("   - GET    /suspects/{{id}}");
-    log::info!("   - PUT    /suspects/{{id}}");
-    log::info!("   - DELETE /suspects/{{id}}");
+    log::info!("   - PUT    /suspects/{{id}} (CSRF protected)");
+    log::info!("   - DELETE /suspects/{{id}} (CSRF protected)");
     log::info!("   - GET    /suspects/personal/{{personal_id}}");
-    log::info!("   - PUT    /suspects/{{personal_id}}/flag");
-    log::info!("   - GET    /api/shared/suspects (Authenticated)");
-    log::info!("   - GET    /api/shared/suspects/{{personal_id}} (Authenticated)");
+    log::info!("   - POST   /suspects/flag (CSRF protected)");
+    log::info!("   - GET    /api/shared/suspects (API Key protected)");
+    log::info!("   - GET    /api/shared/suspects/{{personal_id}} (API Key protected)");
     
     log::info!("🔒 API Key authentication required for /api/shared/* endpoints");
+    log::info!("🛡️  CSRF protection active for POST/PUT/DELETE endpoints");
     log::info!("⏱️  Rate limiting: 10 req/s, burst 20");
     
     // Clone variables for move into closure
     let allowed_origins_clone = allowed_origins.clone();
+    let enable_tls_clone = enable_tls;
     
     // Create HTTP server
     let server = HttpServer::new(move || {
@@ -129,8 +132,12 @@ async fn main() -> std::io::Result<()> {
                 actix_web::http::header::CONTENT_TYPE,
                 actix_web::http::header::AUTHORIZATION,
                 actix_web::http::header::HeaderName::from_static("x-api-key"),
+                actix_web::http::header::HeaderName::from_static("x-csrf-token"),
             ])
-            .expose_headers(vec![actix_web::http::header::CONTENT_TYPE])
+            .expose_headers(vec![
+                actix_web::http::header::CONTENT_TYPE,
+                actix_web::http::header::SET_COOKIE,
+            ])
             .max_age(3600)
             .supports_credentials();
         
@@ -144,6 +151,7 @@ async fn main() -> std::io::Result<()> {
             .wrap(actix_middleware::Logger::default())
             .wrap(cors)
             .wrap(Governor::new(&governor_conf))
+            .wrap(middleware::CsrfProtection::new(enable_tls_clone))
             
             // Add security headers
             .wrap(actix_middleware::DefaultHeaders::new()

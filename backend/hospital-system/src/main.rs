@@ -28,6 +28,7 @@ async fn main() -> std::io::Result<()> {
     // Validate security configuration
     log::info!("✅ Security configuration loaded");
     log::info!("   - API Key authentication: ENABLED");
+    log::info!("   - CSRF protection: ENABLED for state-changing operations");
     log::info!("   - Rate limiting: {} req/min", config.rate_limit_per_minute);
     log::info!("   - TLS: {}", if config.enable_tls { "ENABLED" } else { "DISABLED (dev only)" });
     log::info!("   - Allowed CORS origins: {:?}", config.allowed_origins);
@@ -65,29 +66,32 @@ async fn main() -> std::io::Result<()> {
     // Log available routes
     log::info!("📋 Configuring routes:");
     log::info!("   - GET    /patients (Internal)");
-    log::info!("   - POST   /patients (Internal)");
+    log::info!("   - POST   /patients (Internal, CSRF protected)");
     log::info!("   - GET    /patients/{{id}} (Internal)");
-    log::info!("   - PUT    /patients/{{id}} (Internal)");
-    log::info!("   - DELETE /patients/{{id}} (Internal)");
+    log::info!("   - PUT    /patients/{{id}} (Internal, CSRF protected)");
+    log::info!("   - DELETE /patients/{{id}} (Internal, CSRF protected)");
     log::info!("   - GET    /patients/personal/{{personal_id}} (Internal)");
     log::info!("   - GET    /patients/flagged (Internal)");
-    log::info!("   - GET    /api/shared/patients (Authenticated)");
-    log::info!("   - GET    /api/shared/patients/flagged (Authenticated)");
-    log::info!("   - GET    /api/shared/patients/{{personal_id}} (Authenticated)");
+    log::info!("   - GET    /api/shared/patients (API Key protected)");
+    log::info!("   - GET    /api/shared/patients/flagged (API Key protected)");
+    log::info!("   - GET    /api/shared/patients/{{personal_id}} (API Key protected)");
     
     log::info!("🔒 API Key authentication required for /api/shared/* endpoints");
+    log::info!("🛡️  CSRF protection active for POST/PUT/DELETE endpoints");
     
     let api_key = config.api_key.clone();
     let allowed_origins = config.allowed_origins.clone();
     let enable_tls = config.enable_tls;
+    let rate_limit_per_minute = config.rate_limit_per_minute;
     
     // Clone for use inside the closure
     let allowed_origins_clone = allowed_origins.clone();
+    let enable_tls_clone = enable_tls;
     
     // Create HTTP server
     let server = HttpServer::new(move || {
         // Create rate limiter for each worker
-        let rate_limiter = middleware::configure_rate_limiter(config.rate_limit_per_minute);
+        let rate_limiter = middleware::configure_rate_limiter(rate_limit_per_minute);
         
         // Configure CORS with strict origin whitelist
         let mut cors = Cors::default()
@@ -96,8 +100,12 @@ async fn main() -> std::io::Result<()> {
                 actix_web::http::header::CONTENT_TYPE,
                 actix_web::http::header::AUTHORIZATION,
                 actix_web::http::header::HeaderName::from_static("x-api-key"),
+                actix_web::http::header::HeaderName::from_static("x-csrf-token"),
             ])
-            .expose_headers(vec![actix_web::http::header::CONTENT_TYPE])
+            .expose_headers(vec![
+                actix_web::http::header::CONTENT_TYPE,
+                actix_web::http::header::SET_COOKIE,
+            ])
             .max_age(3600)
             .supports_credentials();
         
@@ -111,6 +119,7 @@ async fn main() -> std::io::Result<()> {
             .wrap(actix_middleware::Logger::default())
             .wrap(cors)
             .wrap(rate_limiter)
+            .wrap(middleware::CsrfProtection::new(enable_tls_clone))
             
             // Add security headers
             .wrap(actix_middleware::DefaultHeaders::new()

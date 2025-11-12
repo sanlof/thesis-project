@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Suspect, FlagUpdateRequest } from "../types";
+import { fetchWithCsrf, isCsrfError } from "../utils/csrf";
 
 function PoliceData() {
   const [suspects, setSuspects] = useState<Suspect[]>([]);
@@ -14,7 +15,10 @@ function PoliceData() {
         setLoading(true);
         setError(null);
 
-        const response = await fetch("/api/police/suspects");
+        // GET requests automatically receive CSRF token via cookie
+        const response = await fetch("/api/police/suspects", {
+          credentials: "include", // Important: include cookies
+        });
 
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
@@ -46,14 +50,14 @@ function PoliceData() {
       setTogglingId(suspect.personal_id);
       setToggleError(null);
 
-      // SECURITY IMPROVEMENT: personal_id is now in request body instead of URL
       const flagUpdate: FlagUpdateRequest = {
         personal_id: suspect.personal_id,
         flag: newFlagValue,
       };
 
-      const response = await fetch("/api/police/suspects/flag", {
-        method: "POST", // Changed from PUT to POST
+      // Use fetchWithCsrf for automatic CSRF token handling
+      const response = await fetchWithCsrf("/api/police/suspects/flag", {
+        method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
@@ -72,11 +76,21 @@ function PoliceData() {
           s.personal_id === suspect.personal_id ? updatedSuspect : s
         )
       );
+
+      setToggleError(null);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : "Unknown error";
-      setToggleError(
-        `Failed to toggle flag for ${suspect.full_name}: ${errorMessage}`
-      );
+
+      // Handle CSRF errors specially
+      if (isCsrfError(err)) {
+        setToggleError(
+          `CSRF validation failed. Please refresh the page and try again.`
+        );
+      } else {
+        setToggleError(
+          `Failed to toggle flag for ${suspect.full_name}: ${errorMessage}`
+        );
+      }
     } finally {
       setTogglingId(null);
     }
@@ -94,7 +108,17 @@ function PoliceData() {
     <div>
       <h2>Police System - Suspects</h2>
       {toggleError && (
-        <div style={{ color: "red", marginBottom: "10px" }}>{toggleError}</div>
+        <div style={{ color: "red", marginBottom: "10px" }}>
+          {toggleError}
+          {toggleError.includes("CSRF") && (
+            <button
+              onClick={() => window.location.reload()}
+              style={{ marginLeft: "10px" }}
+            >
+              Refresh Page
+            </button>
+          )}
+        </div>
       )}
       <table>
         <thead>
@@ -148,7 +172,7 @@ function PoliceData() {
       </table>
       <p style={{ marginTop: "10px", fontSize: "0.9em", color: "#666" }}>
         Note: Flag changes automatically sync to the hospital system via
-        database triggers.
+        database triggers. CSRF protection is active for all flag updates.
       </p>
     </div>
   );

@@ -7,7 +7,7 @@ description = "Police backend service for thesis project"
 
 [dependencies]
 # Web framework with rustls support
-actix-web = { version = "4", features = ["rustls-0_21"] }
+actix-web = { version = "4", features = ["rustls-0_21", "cookies"] }
 actix-cors = "0.7"
 
 # Database
@@ -30,6 +30,8 @@ log = "0.4"
 # Security - Cryptography
 sha2 = "0.10"
 subtle = "2.5"
+base64 = "0.22"
+rand = "0.8"
 
 # Security - Rate limiting
 actix-governor = "0.5"
