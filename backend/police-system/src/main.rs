@@ -6,7 +6,6 @@ mod utils;
 
 use actix_web::{web, App, HttpServer, middleware as actix_middleware};
 use actix_cors::Cors;
-use actix_governor::{Governor, GovernorConfigBuilder};
 use std::env;
 use std::fs::File;
 use std::io::BufReader;
@@ -62,9 +61,34 @@ async fn main() -> std::io::Result<()> {
         panic!("ALLOWED_ORIGINS must contain at least one valid origin");
     }
     
+    // Parse rate limiting configuration
+    let general_rate_limit_per_second = env::var("RATE_LIMIT_PER_SECOND")
+        .unwrap_or_else(|_| "10".to_string())
+        .parse()
+        .unwrap_or(10);
+    
+    let general_rate_limit_burst = env::var("RATE_LIMIT_BURST")
+        .unwrap_or_else(|_| "20".to_string())
+        .parse()
+        .unwrap_or(20);
+    
+    let shared_api_rate_limit_per_second = env::var("SHARED_API_RATE_LIMIT_PER_SECOND")
+        .unwrap_or_else(|_| "1".to_string())
+        .parse()
+        .unwrap_or(1);
+    
+    let shared_api_rate_limit_burst = env::var("SHARED_API_RATE_LIMIT_BURST")
+        .unwrap_or_else(|_| "5".to_string())
+        .parse()
+        .unwrap_or(5);
+    
     log::info!("✅ Security configuration loaded");
     log::info!("   - API Key authentication: ENABLED for shared endpoints");
     log::info!("   - CSRF protection: ENABLED for state-changing operations");
+    log::info!("   - Rate limiting (general): {} req/s, burst: {}", 
+        general_rate_limit_per_second, general_rate_limit_burst);
+    log::info!("   - Rate limiting (shared API): {} req/s, burst: {}", 
+        shared_api_rate_limit_per_second, shared_api_rate_limit_burst);
     log::info!("   - TLS: {}", if enable_tls { "ENABLED" } else { "DISABLED (dev only)" });
     log::info!("   - Allowed CORS origins: {:?}", allowed_origins);
     
@@ -96,28 +120,21 @@ async fn main() -> std::io::Result<()> {
     
     log::info!("✅ Database connection established");
     
-    // Configure rate limiting
-    let governor_conf = GovernorConfigBuilder::default()
-        .per_second(10)  // Allow 10 requests per second
-        .burst_size(20)  // Allow bursts up to 20
-        .finish()
-        .expect("Failed to configure rate limiter");
-    
     // Log available routes
     log::info!("📋 Configuring routes:");
-    log::info!("   - GET    /suspects");
+    log::info!("   - GET    /suspects (general rate limit)");
     log::info!("   - POST   /suspects (CSRF protected)");
     log::info!("   - GET    /suspects/{{id}}");
     log::info!("   - PUT    /suspects/{{id}} (CSRF protected)");
     log::info!("   - DELETE /suspects/{{id}} (CSRF protected)");
     log::info!("   - GET    /suspects/personal/{{personal_id}}");
     log::info!("   - POST   /suspects/flag (CSRF protected)");
-    log::info!("   - GET    /api/shared/suspects (API Key protected)");
-    log::info!("   - GET    /api/shared/suspects/{{personal_id}} (API Key protected)");
+    log::info!("   - GET    /api/shared/suspects (API Key + strict rate limit)");
+    log::info!("   - GET    /api/shared/suspects/{{personal_id}} (API Key + strict rate limit)");
     
     log::info!("🔒 API Key authentication required for /api/shared/* endpoints");
     log::info!("🛡️  CSRF protection active for POST/PUT/DELETE endpoints");
-    log::info!("⏱️  Rate limiting: 10 req/s, burst 20");
+    log::info!("⏱️  Strict per-API-key rate limiting on /api/shared/* endpoints");
     
     // Clone variables for move into closure
     let allowed_origins_clone = allowed_origins.clone();
@@ -125,6 +142,18 @@ async fn main() -> std::io::Result<()> {
     
     // Create HTTP server
     let server = HttpServer::new(move || {
+        // Create general rate limiter (IP-based)
+        let general_rate_limiter = middleware::configure_rate_limiter(
+            general_rate_limit_per_second,
+            general_rate_limit_burst,
+        );
+        
+        // Create strict rate limiter for shared API (API-key-based)
+        let shared_api_rate_limiter = middleware::configure_shared_api_rate_limiter(
+            shared_api_rate_limit_per_second,
+            shared_api_rate_limit_burst,
+        );
+        
         // Configure CORS with strict origin whitelist
         let mut cors = Cors::default()
             .allowed_methods(vec!["GET", "POST", "PUT", "DELETE", "OPTIONS"])
@@ -150,7 +179,7 @@ async fn main() -> std::io::Result<()> {
             // Add security middleware
             .wrap(actix_middleware::Logger::default())
             .wrap(cors)
-            .wrap(Governor::new(&governor_conf))
+            .wrap(general_rate_limiter)  // General rate limiting
             .wrap(middleware::CsrfProtection::new(enable_tls_clone))
             
             // Add security headers
@@ -167,9 +196,10 @@ async fn main() -> std::io::Result<()> {
             // Configure API routes
             .configure(api::configure_suspects)
             
-            // Shared API routes with authentication
+            // Shared API routes with authentication AND stricter rate limiting
             .service(
                 web::scope("/api/shared")
+                    .wrap(shared_api_rate_limiter)  // Apply strict rate limiting FIRST
                     .wrap(middleware::ApiKeyAuth::new(api_key.clone()))
                     .configure(api::configure_shared)
             )

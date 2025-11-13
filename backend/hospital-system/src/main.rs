@@ -29,7 +29,10 @@ async fn main() -> std::io::Result<()> {
     log::info!("✅ Security configuration loaded");
     log::info!("   - API Key authentication: ENABLED");
     log::info!("   - CSRF protection: ENABLED for state-changing operations");
-    log::info!("   - Rate limiting: {} req/min", config.rate_limit_per_minute);
+    log::info!("   - Rate limiting (general): {} req/min", config.rate_limit_per_minute);
+    log::info!("   - Rate limiting (shared API): {} req/s, burst: {}", 
+        config.shared_api_rate_limit_per_second,
+        config.shared_api_rate_limit_burst);
     log::info!("   - TLS: {}", if config.enable_tls { "ENABLED" } else { "DISABLED (dev only)" });
     log::info!("   - Allowed CORS origins: {:?}", config.allowed_origins);
     
@@ -65,24 +68,27 @@ async fn main() -> std::io::Result<()> {
     
     // Log available routes
     log::info!("📋 Configuring routes:");
-    log::info!("   - GET    /patients (Internal)");
+    log::info!("   - GET    /patients (Internal, general rate limit)");
     log::info!("   - POST   /patients (Internal, CSRF protected)");
     log::info!("   - GET    /patients/{{id}} (Internal)");
     log::info!("   - PUT    /patients/{{id}} (Internal, CSRF protected)");
     log::info!("   - DELETE /patients/{{id}} (Internal, CSRF protected)");
     log::info!("   - GET    /patients/personal/{{personal_id}} (Internal)");
     log::info!("   - GET    /patients/flagged (Internal)");
-    log::info!("   - GET    /api/shared/patients (API Key protected)");
-    log::info!("   - GET    /api/shared/patients/flagged (API Key protected)");
-    log::info!("   - GET    /api/shared/patients/{{personal_id}} (API Key protected)");
+    log::info!("   - GET    /api/shared/patients (API Key + strict rate limit)");
+    log::info!("   - GET    /api/shared/patients/flagged (API Key + strict rate limit)");
+    log::info!("   - GET    /api/shared/patients/{{personal_id}} (API Key + strict rate limit)");
     
     log::info!("🔒 API Key authentication required for /api/shared/* endpoints");
     log::info!("🛡️  CSRF protection active for POST/PUT/DELETE endpoints");
+    log::info!("⏱️  Strict per-API-key rate limiting on /api/shared/* endpoints");
     
     let api_key = config.api_key.clone();
     let allowed_origins = config.allowed_origins.clone();
     let enable_tls = config.enable_tls;
     let rate_limit_per_minute = config.rate_limit_per_minute;
+    let shared_rate_limit_per_second = config.shared_api_rate_limit_per_second;
+    let shared_rate_limit_burst = config.shared_api_rate_limit_burst;
     
     // Clone for use inside the closure
     let allowed_origins_clone = allowed_origins.clone();
@@ -90,8 +96,14 @@ async fn main() -> std::io::Result<()> {
     
     // Create HTTP server
     let server = HttpServer::new(move || {
-        // Create rate limiter for each worker
+        // Create general rate limiter (IP-based)
         let rate_limiter = middleware::configure_rate_limiter(rate_limit_per_minute);
+        
+        // Create strict rate limiter for shared API (API-key-based)
+        let shared_api_rate_limiter = middleware::configure_shared_api_rate_limiter(
+            shared_rate_limit_per_second,
+            shared_rate_limit_burst,
+        );
         
         // Configure CORS with strict origin whitelist
         let mut cors = Cors::default()
@@ -118,7 +130,7 @@ async fn main() -> std::io::Result<()> {
             // Add security middleware
             .wrap(actix_middleware::Logger::default())
             .wrap(cors)
-            .wrap(rate_limiter)
+            .wrap(rate_limiter)  // General rate limiting
             .wrap(middleware::CsrfProtection::new(enable_tls_clone))
             
             // Add security headers
@@ -135,9 +147,10 @@ async fn main() -> std::io::Result<()> {
             // Configure API routes
             .configure(api::configure_patients)
             
-            // Shared API routes with authentication
+            // Shared API routes with authentication AND stricter rate limiting
             .service(
                 web::scope("/api/shared")
+                    .wrap(shared_api_rate_limiter)  // Apply strict rate limiting FIRST
                     .wrap(middleware::ApiKeyAuth::new(api_key.clone()))
                     .configure(api::configure_shared)
             )

@@ -10,6 +10,9 @@ pub struct Config {
     pub enable_tls: bool,
     pub tls_cert_path: Option<String>,
     pub tls_key_path: Option<String>,
+    // New fields for shared API rate limiting
+    pub shared_api_rate_limit_per_second: u64,
+    pub shared_api_rate_limit_burst: u32,
 }
 
 impl Config {
@@ -62,6 +65,17 @@ impl Config {
             return Err("TLS_CERT_PATH and TLS_KEY_PATH must be set when ENABLE_TLS=true".to_string());
         }
         
+        // Parse shared API rate limiting configuration
+        let shared_api_rate_limit_per_second = env::var("SHARED_API_RATE_LIMIT_PER_SECOND")
+            .unwrap_or_else(|_| "1".to_string())
+            .parse()
+            .unwrap_or(1);
+        
+        let shared_api_rate_limit_burst = env::var("SHARED_API_RATE_LIMIT_BURST")
+            .unwrap_or_else(|_| "5".to_string())
+            .parse()
+            .unwrap_or(5);
+        
         Ok(Config {
             database_url,
             server_port,
@@ -71,6 +85,8 @@ impl Config {
             enable_tls,
             tls_cert_path,
             tls_key_path,
+            shared_api_rate_limit_per_second,
+            shared_api_rate_limit_burst,
         })
     }
 }
