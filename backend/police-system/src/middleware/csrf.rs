@@ -82,15 +82,18 @@ where
                 let token = generate_csrf_token();
                 let mut cookie = Cookie::new(CSRF_COOKIE_NAME, token);
                 cookie.set_http_only(true);
-                cookie.set_same_site(SameSite::Strict);
+                cookie.set_same_site(SameSite::Lax); // Changed from Strict to Lax for better proxy compatibility
                 cookie.set_path("/");
                 
+                // Only set Secure flag if TLS is enabled
                 if enable_tls {
                     cookie.set_secure(true);
                 }
                 
                 // Store cookie in request extensions for response
                 req.extensions_mut().insert(cookie.clone());
+                
+                log::debug!("CSRF: Generated token for GET request to {}", req.path());
             }
             
             let fut = self.service.call(req);
@@ -98,10 +101,13 @@ where
                 let mut res = fut.await?;
                 
                 // Add cookie to response if present in extensions
-                // Clone the cookie from extensions to avoid borrow issues
                 let cookie_opt = res.request().extensions().get::<Cookie>().cloned();
                 if let Some(cookie) = cookie_opt {
-                    res.response_mut().add_cookie(&cookie).ok();
+                    if let Err(e) = res.response_mut().add_cookie(&cookie) {
+                        log::warn!("Failed to set CSRF cookie: {}", e);
+                    } else {
+                        log::debug!("CSRF: Cookie set successfully");
+                    }
                 }
                 
                 Ok(res.map_into_boxed_body())
@@ -119,9 +125,18 @@ where
             .and_then(|h| h.to_str().ok())
             .map(|s| s.to_string());
         
+        log::debug!(
+            "CSRF validation for {} {}: cookie={:?}, header={:?}",
+            req.method(),
+            req.path(),
+            cookie_token.as_ref().map(|t| &t[..8.min(t.len())]),
+            header_token.as_ref().map(|t| &t[..8.min(t.len())])
+        );
+        
         match (cookie_token, header_token) {
             (Some(cookie), Some(header)) if constant_time_eq(&cookie, &header) => {
                 // Valid CSRF token
+                log::debug!("CSRF: Token validated successfully");
                 let fut = self.service.call(req);
                 Box::pin(async move {
                     let res = fut.await?;
