@@ -30,7 +30,7 @@ Make a complete setup guide according to the simple project structure you just g
 ## Prompt 1.3
 
 Make a readme-file for the file structure
-(Claude named this ARCHITECTURE.md)
+_(Claude named this ARCHITECTURE.md)_
 
 ## Prompt 1.4 (with Claude Sonnet 4.5)
 
