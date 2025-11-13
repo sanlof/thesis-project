@@ -37,6 +37,9 @@ rand = "0.8"
 # Security - Rate limiting
 actix-governor = "0.5"
 
+# Time utilities
+chrono = { version = "0.4", features = ["serde"] }
+
 # TLS support
 rustls = "0.21"
 rustls-pemfile = "1.0"

@@ -1,6 +1,6 @@
 use serde::Serialize;
 use chrono::{DateTime, Utc};
-use actix_web::dev::ServiceRequest;
+use actix_web::HttpRequest;
 use std::net::IpAddr;
 
 /// Audit event types for different operations
@@ -90,9 +90,9 @@ impl AuditLog {
     }
 }
 
-/// Extract actor from API key in request
+/// Extract actor from API key in HttpRequest
 /// Returns a hash of the API key for privacy
-pub fn extract_actor_from_request(req: &ServiceRequest) -> String {
+pub fn extract_actor_from_request(req: &HttpRequest) -> String {
     req.headers()
         .get("X-API-Key")
         .and_then(|h| h.to_str().ok())
@@ -103,11 +103,6 @@ pub fn extract_actor_from_request(req: &ServiceRequest) -> String {
             format!("api_key:{:x}", hasher.finalize())[..24].to_string()
         })
         .unwrap_or_else(|| "internal".to_string())
-}
-
-/// Extract IP address from request
-pub fn extract_ip_from_request(req: &ServiceRequest) -> Option<IpAddr> {
-    req.peer_addr().map(|addr| addr.ip())
 }
 
 #[cfg(test)]

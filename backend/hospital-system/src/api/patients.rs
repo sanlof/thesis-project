@@ -5,7 +5,6 @@ use crate::models::{CreatePatient, UpdatePatient};
 use crate::utils::error_handler::{
     handle_database_error,
     handle_not_found,
-    handle_validation_error,
 };
 
 /// Sanitize personal ID for logging
