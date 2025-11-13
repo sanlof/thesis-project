@@ -9,6 +9,7 @@ use crate::utils::error_handler::{
     handle_not_found,
     handle_validation_error,
 };
+use crate::utils::audit::{AuditLog, EventType, Action, AuditResult};
 
 /// Request body for flag updates - now includes personal_id
 #[derive(Deserialize)]
@@ -74,25 +75,68 @@ async fn get_suspect_by_personal_id(
 async fn create_suspect(
     pool: web::Data<PgPool>,
     suspect: web::Json<CreateSuspect>,
+    req: actix_web::HttpRequest,
 ) -> HttpResponse {
     let suspect_data = suspect.into_inner();
+    let resource_hash = hash_for_logging(&suspect_data.personal_id);
     
     // Validate personal ID format
     if !Suspect::validate_personal_id(&suspect_data.personal_id) {
+        // Audit failure
+        AuditLog::new(
+            EventType::SuspectCreate,
+            "internal".to_string(),
+            Action::Create,
+            format!("suspect:{}", resource_hash),
+            AuditResult::Failure,
+        )
+        .with_ip(req.peer_addr().map(|a| a.ip()))
+        .with_details("Invalid personal_id format".to_string())
+        .write();
+        
         return handle_validation_error(
-            &format!("Invalid personal_id format: {}", hash_for_logging(&suspect_data.personal_id)),
+            &format!("Invalid personal_id format: {}", resource_hash),
             "create_suspect"
         );
     }
     
     match database::create_suspect(&pool, suspect_data).await {
         Ok(created_suspect) => {
+            let pid_hash = created_suspect.personal_id
+                .as_ref()
+                .map(|pid| hash_for_logging(pid))
+                .unwrap_or_else(|| "unknown".to_string());
+            
+            // Audit success
+            AuditLog::new(
+                EventType::SuspectCreate,
+                "internal".to_string(),
+                Action::Create,
+                format!("suspect:{}", pid_hash),
+                AuditResult::Success,
+            )
+            .with_ip(req.peer_addr().map(|a| a.ip()))
+            .write();
+            
             log::info!("Created suspect with ID {} (personal_id hash: {})", 
-                created_suspect.id,
-                hash_for_logging(&created_suspect.personal_id.as_ref().unwrap_or(&String::new())));
+                created_suspect.id, pid_hash);
             HttpResponse::Created().json(created_suspect)
         }
-        Err(e) => handle_database_error(e, "create_suspect"),
+        Err(e) => {
+            // Audit failure
+            AuditLog::new(
+                EventType::SuspectCreate,
+                "internal".to_string(),
+                Action::Create,
+                format!("suspect:{}", resource_hash),
+                AuditResult::Failure,
+            )
+            .with_ip(req.peer_addr().map(|a| a.ip()))
+            .with_details(format!("Database error: {}", e))
+            .write();
+            
+            handle_database_error(e, "create_suspect")
+        }
     }
 }
 
@@ -101,25 +145,79 @@ async fn update_suspect(
     pool: web::Data<PgPool>,
     id: web::Path<i32>,
     suspect: web::Json<UpdateSuspect>,
+    req: actix_web::HttpRequest,
 ) -> HttpResponse {
     let suspect_id = id.into_inner();
     let suspect_data = suspect.into_inner();
+    let resource_hash = hash_for_logging(&suspect_data.personal_id);
     
     // Validate personal ID format if provided
     if !Suspect::validate_personal_id(&suspect_data.personal_id) {
+        AuditLog::new(
+            EventType::SuspectUpdate,
+            "internal".to_string(),
+            Action::Update,
+            format!("suspect:{}", resource_hash),
+            AuditResult::Failure,
+        )
+        .with_ip(req.peer_addr().map(|a| a.ip()))
+        .with_details("Invalid personal_id format".to_string())
+        .write();
+        
         return handle_validation_error(
-            &format!("Invalid personal_id format: {}", hash_for_logging(&suspect_data.personal_id)),
+            &format!("Invalid personal_id format: {}", resource_hash),
             "update_suspect"
         );
     }
     
     match database::update_suspect(&pool, suspect_id, suspect_data).await {
         Ok(Some(updated_suspect)) => {
+            let pid_hash = updated_suspect.personal_id
+                .as_ref()
+                .map(|pid| hash_for_logging(pid))
+                .unwrap_or_else(|| "unknown".to_string());
+            
+            AuditLog::new(
+                EventType::SuspectUpdate,
+                "internal".to_string(),
+                Action::Update,
+                format!("suspect:{}", pid_hash),
+                AuditResult::Success,
+            )
+            .with_ip(req.peer_addr().map(|a| a.ip()))
+            .write();
+            
             log::info!("Updated suspect with ID {}", suspect_id);
             HttpResponse::Ok().json(updated_suspect)
         }
-        Ok(None) => handle_not_found("suspect", &suspect_id.to_string()),
-        Err(e) => handle_database_error(e, "update_suspect"),
+        Ok(None) => {
+            AuditLog::new(
+                EventType::SuspectUpdate,
+                "internal".to_string(),
+                Action::Update,
+                format!("suspect:{}", resource_hash),
+                AuditResult::Failure,
+            )
+            .with_ip(req.peer_addr().map(|a| a.ip()))
+            .with_details("Suspect not found".to_string())
+            .write();
+            
+            handle_not_found("suspect", &suspect_id.to_string())
+        }
+        Err(e) => {
+            AuditLog::new(
+                EventType::SuspectUpdate,
+                "internal".to_string(),
+                Action::Update,
+                format!("suspect:{}", resource_hash),
+                AuditResult::Failure,
+            )
+            .with_ip(req.peer_addr().map(|a| a.ip()))
+            .with_details(format!("Database error: {}", e))
+            .write();
+            
+            handle_database_error(e, "update_suspect")
+        }
     }
 }
 
@@ -127,16 +225,53 @@ async fn update_suspect(
 async fn delete_suspect(
     pool: web::Data<PgPool>,
     id: web::Path<i32>,
+    req: actix_web::HttpRequest,
 ) -> HttpResponse {
     let suspect_id = id.into_inner();
     
     match database::delete_suspect(&pool, suspect_id).await {
         Ok(true) => {
+            AuditLog::new(
+                EventType::SuspectDelete,
+                "internal".to_string(),
+                Action::Delete,
+                format!("suspect:id_{}", suspect_id),
+                AuditResult::Success,
+            )
+            .with_ip(req.peer_addr().map(|a| a.ip()))
+            .write();
+            
             log::info!("Deleted suspect with ID {}", suspect_id);
             HttpResponse::NoContent().finish()
         }
-        Ok(false) => handle_not_found("suspect", &suspect_id.to_string()),
-        Err(e) => handle_database_error(e, "delete_suspect"),
+        Ok(false) => {
+            AuditLog::new(
+                EventType::SuspectDelete,
+                "internal".to_string(),
+                Action::Delete,
+                format!("suspect:id_{}", suspect_id),
+                AuditResult::Failure,
+            )
+            .with_ip(req.peer_addr().map(|a| a.ip()))
+            .with_details("Suspect not found".to_string())
+            .write();
+            
+            handle_not_found("suspect", &suspect_id.to_string())
+        }
+        Err(e) => {
+            AuditLog::new(
+                EventType::SuspectDelete,
+                "internal".to_string(),
+                Action::Delete,
+                format!("suspect:id_{}", suspect_id),
+                AuditResult::Failure,
+            )
+            .with_ip(req.peer_addr().map(|a| a.ip()))
+            .with_details(format!("Database error: {}", e))
+            .write();
+            
+            handle_database_error(e, "delete_suspect")
+        }
     }
 }
 
@@ -149,28 +284,78 @@ async fn delete_suspect(
 async fn update_flag(
     pool: web::Data<PgPool>,
     flag_data: web::Json<FlagUpdateRequest>,
+    req: actix_web::HttpRequest,
 ) -> HttpResponse {
     let request = flag_data.into_inner();
+    let resource_hash = hash_for_logging(&request.personal_id);
     
     // Validate personal ID format
     if !Suspect::validate_personal_id(&request.personal_id) {
+        AuditLog::new(
+            EventType::FlagUpdate,
+            "internal".to_string(),
+            Action::Update,
+            format!("suspect:{}", resource_hash),
+            AuditResult::Failure,
+        )
+        .with_ip(req.peer_addr().map(|a| a.ip()))
+        .with_details("Invalid personal_id format".to_string())
+        .write();
+        
         return handle_validation_error(
-            &format!("Invalid personal_id format: {}", hash_for_logging(&request.personal_id)),
+            &format!("Invalid personal_id format: {}", resource_hash),
             "update_flag"
         );
     }
     
     match database::update_flag(&pool, &request.personal_id, request.flag).await {
         Ok(Some(updated_suspect)) => {
+            AuditLog::new(
+                EventType::FlagUpdate,
+                "internal".to_string(),
+                Action::Update,
+                format!("suspect:{}", resource_hash),
+                AuditResult::Success,
+            )
+            .with_ip(req.peer_addr().map(|a| a.ip()))
+            .with_details(format!("Flag updated to {}", request.flag))
+            .write();
+            
             log::info!(
                 "Updated flag to {} for suspect with personal_id hash: {} (will auto-sync to hospital)",
                 request.flag,
-                hash_for_logging(&request.personal_id)
+                resource_hash
             );
             HttpResponse::Ok().json(updated_suspect)
         }
-        Ok(None) => handle_not_found("suspect", &hash_for_logging(&request.personal_id)),
-        Err(e) => handle_database_error(e, "update_flag"),
+        Ok(None) => {
+            AuditLog::new(
+                EventType::FlagUpdate,
+                "internal".to_string(),
+                Action::Update,
+                format!("suspect:{}", resource_hash),
+                AuditResult::Failure,
+            )
+            .with_ip(req.peer_addr().map(|a| a.ip()))
+            .with_details("Suspect not found".to_string())
+            .write();
+            
+            handle_not_found("suspect", &resource_hash)
+        }
+        Err(e) => {
+            AuditLog::new(
+                EventType::FlagUpdate,
+                "internal".to_string(),
+                Action::Update,
+                format!("suspect:{}", resource_hash),
+                AuditResult::Failure,
+            )
+            .with_ip(req.peer_addr().map(|a| a.ip()))
+            .with_details(format!("Database error: {}", e))
+            .write();
+            
+            handle_database_error(e, "update_flag")
+        }
     }
 }
 
