@@ -4,22 +4,42 @@ interface UsePollingOptions {
   enabled?: boolean;
   interval?: number;
   pauseOnInactive?: boolean;
+  maxBackoffInterval?: number;
 }
 
 export function usePolling<T>(
   fetchFn: () => Promise<T>,
   options: UsePollingOptions = {}
 ) {
-  const { enabled = true, interval = 3000, pauseOnInactive = true } = options;
+  const {
+    enabled = true,
+    interval = 3000,
+    pauseOnInactive = true,
+    maxBackoffInterval = 60000,
+  } = options;
 
   const [data, setData] = useState<T | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
+  const [consecutiveErrors, setConsecutiveErrors] = useState<number>(0);
 
   const intervalRef = useRef<number | null>(null);
   const isFirstFetch = useRef<boolean>(true);
   const isPageVisible = useRef<boolean>(true);
+
+  // Calculate current polling interval based on consecutive errors
+  const getCurrentInterval = (): number => {
+    if (consecutiveErrors === 0) {
+      return interval;
+    }
+
+    // Exponential backoff: baseInterval * 2^errorCount
+    const backoffInterval = interval * Math.pow(2, consecutiveErrors);
+
+    // Cap at maxBackoffInterval
+    return Math.min(backoffInterval, maxBackoffInterval);
+  };
 
   const fetchData = async (showRefreshIndicator = false) => {
     try {
@@ -32,9 +52,15 @@ export function usePolling<T>(
 
       const result = await fetchFn();
       setData(result);
+
+      // Reset error count on successful fetch
+      setConsecutiveErrors(0);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : "Unknown error";
       setError(errorMessage);
+
+      // Increment consecutive error count
+      setConsecutiveErrors((prev) => prev + 1);
     } finally {
       setLoading(false);
       setIsRefreshing(false);
@@ -47,11 +73,13 @@ export function usePolling<T>(
       return;
     }
 
+    const currentInterval = getCurrentInterval();
+
     intervalRef.current = globalThis.setInterval(() => {
       if (!pauseOnInactive || isPageVisible.current) {
         void fetchData(true);
       }
-    }, interval);
+    }, currentInterval);
   };
 
   const stopPolling = () => {
@@ -61,6 +89,12 @@ export function usePolling<T>(
     }
   };
 
+  const restartPolling = () => {
+    stopPolling();
+    startPolling();
+  };
+
+  // Handle visibility changes
   useEffect(() => {
     const handleVisibilityChange = () => {
       isPageVisible.current = !document.hidden;
@@ -70,7 +104,7 @@ export function usePolling<T>(
           stopPolling();
         } else {
           void fetchData(true);
-          startPolling();
+          restartPolling();
         }
       }
     };
@@ -87,8 +121,19 @@ export function usePolling<T>(
         );
       }
     };
-  }, [pauseOnInactive]);
+  }, [pauseOnInactive, consecutiveErrors]); // Added consecutiveErrors dependency
 
+  // Restart polling when error count changes (for dynamic interval)
+  useEffect(() => {
+    if (!enabled || isFirstFetch.current) {
+      return;
+    }
+
+    // Restart polling with new interval based on error count
+    restartPolling();
+  }, [consecutiveErrors]);
+
+  // Main effect for initial fetch and polling setup
   useEffect(() => {
     if (!enabled) {
       stopPolling();
@@ -108,6 +153,8 @@ export function usePolling<T>(
     loading,
     error,
     isRefreshing,
+    consecutiveErrors,
+    currentInterval: getCurrentInterval(),
     refetch: () => fetchData(true),
   };
 }
