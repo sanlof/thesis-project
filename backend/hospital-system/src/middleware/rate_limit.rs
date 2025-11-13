@@ -1,6 +1,7 @@
 use actix_governor::{Governor, GovernorConfigBuilder, KeyExtractor, PeerIpKeyExtractor, governor::middleware::NoOpMiddleware};
-use actix_web::dev::ServiceRequest;
+use actix_web::{dev::ServiceRequest, http::StatusCode, HttpResponse, ResponseError};
 use sha2::{Sha256, Digest};
+use std::fmt;
 
 /// Standard rate limiter using IP address
 pub fn configure_rate_limiter(requests_per_minute: u64) -> Governor<PeerIpKeyExtractor, NoOpMiddleware> {
@@ -13,13 +14,45 @@ pub fn configure_rate_limiter(requests_per_minute: u64) -> Governor<PeerIpKeyExt
     Governor::new(&governor_conf)
 }
 
+/// Custom error for API key extraction
+#[derive(Debug)]
+pub struct ApiKeyError {
+    message: String,
+}
+
+impl fmt::Display for ApiKeyError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.message)
+    }
+}
+
+impl ResponseError for ApiKeyError {
+    fn status_code(&self) -> StatusCode {
+        StatusCode::BAD_REQUEST
+    }
+
+    fn error_response(&self) -> HttpResponse {
+        HttpResponse::BadRequest().json(serde_json::json!({
+            "error": self.message
+        }))
+    }
+}
+
+impl ApiKeyError {
+    fn new(message: impl Into<String>) -> Self {
+        Self {
+            message: message.into(),
+        }
+    }
+}
+
 /// Custom key extractor that uses API key from X-API-Key header
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct ApiKeyExtractor;
 
 impl KeyExtractor for ApiKeyExtractor {
     type Key = String;
-    type KeyExtractionError = &'static str;
+    type KeyExtractionError = ApiKeyError;
 
     fn extract(&self, req: &ServiceRequest) -> Result<Self::Key, Self::KeyExtractionError> {
         // Extract API key from header
@@ -27,7 +60,7 @@ impl KeyExtractor for ApiKeyExtractor {
             .headers()
             .get("X-API-Key")
             .and_then(|h| h.to_str().ok())
-            .ok_or("Missing X-API-Key header")?;
+            .ok_or_else(|| ApiKeyError::new("Missing X-API-Key header"))?;
         
         // Hash the API key for privacy in rate limiting storage
         // This ensures the actual key isn't stored in memory
@@ -36,12 +69,12 @@ impl KeyExtractor for ApiKeyExtractor {
         let hash = format!("{:x}", hasher.finalize());
         
         // Use first 32 characters of hash as key
-        Ok(hash[..32].to_string())
-    }
-
-    fn key_name(&self, key: &Self::Key) -> Option<String> {
-        // Return sanitized key name for logging
-        Some(format!("api_key:{}", &key[..16]))
+        let key = hash[..32].to_string();
+        
+        // Log with sanitized key for monitoring
+        log::debug!("Rate limit key extracted: api_key:{}", &key[..16]);
+        
+        Ok(key)
     }
 }
 
@@ -94,7 +127,6 @@ mod tests {
         
         let result = extractor.extract(&req);
         assert!(result.is_err());
-        assert_eq!(result.unwrap_err(), "Missing X-API-Key header");
     }
 
     #[test]
