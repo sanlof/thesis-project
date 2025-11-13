@@ -90,6 +90,7 @@ async fn main() -> std::io::Result<()> {
     log::info!("   - Rate limiting (shared API): {} req/s, burst: {}", 
         shared_api_rate_limit_per_second, shared_api_rate_limit_burst);
     log::info!("   - TLS: {}", if enable_tls { "ENABLED" } else { "DISABLED (dev only)" });
+    log::info!("   - Security headers: ENABLED");
     log::info!("   - Allowed CORS origins: {:?}", allowed_origins);
     
     // Validate origins in production
@@ -175,20 +176,30 @@ async fn main() -> std::io::Result<()> {
             cors = cors.allowed_origin(origin);
         }
         
+        // Build comprehensive security headers
+        let mut security_headers = actix_middleware::DefaultHeaders::new()
+            .add(("X-Content-Type-Options", "nosniff"))
+            .add(("X-Frame-Options", "DENY"))
+            .add(("X-XSS-Protection", "1; mode=block"))
+            .add(("Content-Security-Policy", "default-src 'none'"))
+            .add(("Referrer-Policy", "no-referrer"))
+            .add(("Permissions-Policy", "geolocation=(), microphone=(), camera=()"));
+        
+        // Add HSTS only if TLS is enabled
+        if enable_tls_clone {
+            security_headers = security_headers.add((
+                "Strict-Transport-Security",
+                "max-age=31536000; includeSubDomains; preload"
+            ));
+        }
+        
         App::new()
             // Add security middleware
             .wrap(actix_middleware::Logger::default())
             .wrap(cors)
             .wrap(general_rate_limiter)  // General rate limiting
             .wrap(middleware::CsrfProtection::new(enable_tls_clone))
-            
-            // Add security headers
-            .wrap(actix_middleware::DefaultHeaders::new()
-                .add(("X-Content-Type-Options", "nosniff"))
-                .add(("X-Frame-Options", "DENY"))
-                .add(("X-XSS-Protection", "1; mode=block"))
-                .add(("Strict-Transport-Security", "max-age=31536000; includeSubDomains"))
-            )
+            .wrap(security_headers)  // Comprehensive security headers
             
             // Share database pool across all handlers
             .app_data(web::Data::new(pool.clone()))
@@ -216,6 +227,7 @@ async fn main() -> std::io::Result<()> {
         
         log::info!("🚀 Starting HTTPS server at https://{}", server_address);
         log::info!("🔒 CORS restricted to: {:?}", allowed_origins);
+        log::info!("🛡️  Security headers enabled (including HSTS)");
         
         server
             .bind_rustls_021(&server_address, tls_config)
@@ -228,6 +240,7 @@ async fn main() -> std::io::Result<()> {
     } else {
         log::info!("🚀 Starting HTTP server at http://{}", server_address);
         log::info!("🔒 CORS restricted to: {:?}", allowed_origins);
+        log::info!("🛡️  Security headers enabled (HSTS excluded - TLS disabled)");
         
         server
             .bind(&server_address)
