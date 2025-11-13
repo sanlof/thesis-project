@@ -2,7 +2,7 @@ use actix_web::{
     dev::{forward_ready, Service, ServiceRequest, ServiceResponse, Transform},
     Error, HttpMessage, HttpResponse,
     body::{BoxBody, MessageBody},
-    cookie::{Cookie, SameSite},
+    cookie::Cookie,
     http::Method,
 };
 use futures_util::future::LocalBoxFuture;
@@ -80,23 +80,24 @@ where
             // Generate and set CSRF token cookie for GET requests
             if req.method() == Method::GET {
                 let token = generate_csrf_token();
-                let mut cookie = Cookie::new(CSRF_COOKIE_NAME, token);
-                cookie.set_http_only(true);
                 
-                // IMPORTANT: Don't set SameSite in HTTP mode for proxy compatibility
-                // In production with HTTPS, this would be set to Lax or Strict
+                // Create a simple cookie without SameSite or Secure in HTTP mode
+                let mut cookie = Cookie::new(CSRF_COOKIE_NAME, token.clone());
+                cookie.set_http_only(true);
+                cookie.set_path("/");
+                
+                // Only set security attributes in TLS mode
                 if enable_tls {
+                    use actix_web::cookie::SameSite;
                     cookie.set_same_site(SameSite::Lax);
                     cookie.set_secure(true);
                 }
-                // In HTTP mode, no SameSite attribute allows the cookie to be set cross-site
-                
-                cookie.set_path("/");
                 
                 // Store cookie in request extensions for response
                 req.extensions_mut().insert(cookie.clone());
                 
-                log::debug!("CSRF: Generated token for GET request to {}", req.path());
+                log::info!("CSRF: Generated token {} for GET request to {}", 
+                    &token[..8], req.path());
             }
             
             let fut = self.service.call(req);
@@ -107,9 +108,9 @@ where
                 let cookie_opt = res.request().extensions().get::<Cookie>().cloned();
                 if let Some(cookie) = cookie_opt {
                     if let Err(e) = res.response_mut().add_cookie(&cookie) {
-                        log::warn!("Failed to set CSRF cookie: {}", e);
+                        log::error!("Failed to set CSRF cookie: {}", e);
                     } else {
-                        log::debug!("CSRF: Cookie set successfully");
+                        log::info!("CSRF: Cookie set successfully: {}", cookie);
                     }
                 }
                 
@@ -128,7 +129,7 @@ where
             .and_then(|h| h.to_str().ok())
             .map(|s| s.to_string());
         
-        log::debug!(
+        log::info!(
             "CSRF validation for {} {}: cookie={:?}, header={:?}",
             req.method(),
             req.path(),
@@ -139,7 +140,7 @@ where
         match (cookie_token, header_token) {
             (Some(cookie), Some(header)) if constant_time_eq(&cookie, &header) => {
                 // Valid CSRF token
-                log::debug!("CSRF: Token validated successfully");
+                log::info!("CSRF: Token validated successfully");
                 let fut = self.service.call(req);
                 Box::pin(async move {
                     let res = fut.await?;

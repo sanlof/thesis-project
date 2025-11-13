@@ -18,12 +18,6 @@ export default defineConfig({
               proxyReq.setHeader("Cookie", req.headers.cookie);
             }
             console.log(`[Proxy->Police] ${req.method} ${req.url}`);
-            if (req.headers.cookie) {
-              console.log(
-                `[Proxy->Police] Forwarding cookies:`,
-                req.headers.cookie
-              );
-            }
           });
 
           proxy.on("proxyRes", (proxyRes, req, res) => {
@@ -35,30 +29,23 @@ export default defineConfig({
                 setCookieHeaders
               );
 
-              // Rewrite cookies to work with HTTP proxy
+              // Aggressively rewrite cookies for maximum compatibility
               const rewrittenCookies = setCookieHeaders.map((cookie) => {
-                let rewritten = cookie;
+                // Start fresh - just keep name and value
+                const match = cookie.match(/^([^=]+)=([^;]+)/);
+                if (!match) return cookie;
 
-                // Remove Domain attribute
-                rewritten = rewritten.replace(/;\s*Domain=[^;]*/gi, "");
+                const [, name, value] = match;
 
-                // Remove Secure flag (HTTP mode)
-                rewritten = rewritten.replace(/;\s*Secure\b/gi, "");
-
-                // Change SameSite to None for proxy compatibility
-                // Without Secure flag, SameSite=None won't work in some browsers,
-                // so we just remove SameSite entirely for HTTP development
-                rewritten = rewritten.replace(/;\s*SameSite=[^;]*/gi, "");
-
-                // Ensure Path is set to root
-                if (!rewritten.includes("Path=")) {
-                  rewritten += "; Path=/";
-                }
+                // Rebuild cookie with minimal attributes for development
+                let rewritten = `${name}=${value}`;
+                rewritten += "; Path=/";
+                rewritten += "; HttpOnly";
+                // No SameSite, no Secure, no Domain - maximum compatibility
 
                 return rewritten;
               });
 
-              // Set the rewritten cookies
               res.setHeader("Set-Cookie", rewrittenCookies);
               console.log(
                 `[Police->Proxy] Rewritten Set-Cookie:`,
@@ -74,17 +61,10 @@ export default defineConfig({
         rewrite: (path) => path.replace(/^\/api\/hospital/, ""),
         configure: (proxy, _options) => {
           proxy.on("proxyReq", (proxyReq, req, _res) => {
-            // Forward all cookies from browser to backend
             if (req.headers.cookie) {
               proxyReq.setHeader("Cookie", req.headers.cookie);
             }
             console.log(`[Proxy->Hospital] ${req.method} ${req.url}`);
-            if (req.headers.cookie) {
-              console.log(
-                `[Proxy->Hospital] Forwarding cookies:`,
-                req.headers.cookie
-              );
-            }
           });
 
           proxy.on("proxyRes", (proxyRes, req, res) => {
@@ -96,28 +76,21 @@ export default defineConfig({
                 setCookieHeaders
               );
 
-              // Rewrite cookies to work with HTTP proxy
               const rewrittenCookies = setCookieHeaders.map((cookie) => {
-                let rewritten = cookie;
+                // Start fresh - just keep name and value
+                const match = cookie.match(/^([^=]+)=([^;]+)/);
+                if (!match) return cookie;
 
-                // Remove Domain attribute
-                rewritten = rewritten.replace(/;\s*Domain=[^;]*/gi, "");
+                const [, name, value] = match;
 
-                // Remove Secure flag (HTTP mode)
-                rewritten = rewritten.replace(/;\s*Secure\b/gi, "");
-
-                // Remove SameSite entirely for HTTP development
-                rewritten = rewritten.replace(/;\s*SameSite=[^;]*/gi, "");
-
-                // Ensure Path is set to root
-                if (!rewritten.includes("Path=")) {
-                  rewritten += "; Path=/";
-                }
+                // Rebuild cookie with minimal attributes
+                let rewritten = `${name}=${value}`;
+                rewritten += "; Path=/";
+                rewritten += "; HttpOnly";
 
                 return rewritten;
               });
 
-              // Set the rewritten cookies
               res.setHeader("Set-Cookie", rewrittenCookies);
               console.log(
                 `[Hospital->Proxy] Rewritten Set-Cookie:`,
