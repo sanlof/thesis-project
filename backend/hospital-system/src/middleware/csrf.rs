@@ -82,13 +82,16 @@ where
                 let token = generate_csrf_token();
                 let mut cookie = Cookie::new(CSRF_COOKIE_NAME, token);
                 cookie.set_http_only(true);
-                cookie.set_same_site(SameSite::Lax); // Changed from Strict to Lax for better proxy compatibility
-                cookie.set_path("/");
                 
-                // Only set Secure flag if TLS is enabled
+                // IMPORTANT: Don't set SameSite in HTTP mode for proxy compatibility
+                // In production with HTTPS, this would be set to Lax or Strict
                 if enable_tls {
+                    cookie.set_same_site(SameSite::Lax);
                     cookie.set_secure(true);
                 }
+                // In HTTP mode, no SameSite attribute allows the cookie to be set cross-site
+                
+                cookie.set_path("/");
                 
                 // Store cookie in request extensions for response
                 req.extensions_mut().insert(cookie.clone());

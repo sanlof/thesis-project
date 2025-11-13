@@ -9,7 +9,7 @@ export default defineConfig({
     proxy: {
       "/api/police": {
         target: "http://localhost:8000",
-        changeOrigin: false, // Changed to false - keep origin as localhost:3000
+        changeOrigin: true,
         rewrite: (path) => path.replace(/^\/api\/police/, ""),
         configure: (proxy, _options) => {
           proxy.on("proxyReq", (proxyReq, req, _res) => {
@@ -35,29 +35,24 @@ export default defineConfig({
                 setCookieHeaders
               );
 
-              // Manually set cookies in the response to browser
-              // This ensures cookies are properly set for localhost:3000
+              // Rewrite cookies to work with HTTP proxy
               const rewrittenCookies = setCookieHeaders.map((cookie) => {
-                // Parse and rewrite the cookie
                 let rewritten = cookie;
 
-                // Remove any Domain attribute
+                // Remove Domain attribute
                 rewritten = rewritten.replace(/;\s*Domain=[^;]*/gi, "");
 
-                // Remove Secure flag (we're on HTTP)
-                rewritten = rewritten.replace(/;\s*Secure/gi, "");
+                // Remove Secure flag (HTTP mode)
+                rewritten = rewritten.replace(/;\s*Secure\b/gi, "");
 
-                // Change SameSite to Lax or None for cross-origin
-                rewritten = rewritten.replace(
-                  /;\s*SameSite=[^;]*/gi,
-                  "; SameSite=Lax"
-                );
+                // Change SameSite to None for proxy compatibility
+                // Without Secure flag, SameSite=None won't work in some browsers,
+                // so we just remove SameSite entirely for HTTP development
+                rewritten = rewritten.replace(/;\s*SameSite=[^;]*/gi, "");
 
                 // Ensure Path is set to root
                 if (!rewritten.includes("Path=")) {
                   rewritten += "; Path=/";
-                } else {
-                  rewritten = rewritten.replace(/;\s*Path=[^;]*/gi, "; Path=/");
                 }
 
                 return rewritten;
@@ -75,7 +70,7 @@ export default defineConfig({
       },
       "/api/hospital": {
         target: "http://localhost:8001",
-        changeOrigin: false, // Changed to false - keep origin as localhost:3000
+        changeOrigin: true,
         rewrite: (path) => path.replace(/^\/api\/hospital/, ""),
         configure: (proxy, _options) => {
           proxy.on("proxyReq", (proxyReq, req, _res) => {
@@ -101,28 +96,22 @@ export default defineConfig({
                 setCookieHeaders
               );
 
-              // Manually set cookies in the response to browser
+              // Rewrite cookies to work with HTTP proxy
               const rewrittenCookies = setCookieHeaders.map((cookie) => {
-                // Parse and rewrite the cookie
                 let rewritten = cookie;
 
-                // Remove any Domain attribute
+                // Remove Domain attribute
                 rewritten = rewritten.replace(/;\s*Domain=[^;]*/gi, "");
 
-                // Remove Secure flag (we're on HTTP)
-                rewritten = rewritten.replace(/;\s*Secure/gi, "");
+                // Remove Secure flag (HTTP mode)
+                rewritten = rewritten.replace(/;\s*Secure\b/gi, "");
 
-                // Change SameSite to Lax
-                rewritten = rewritten.replace(
-                  /;\s*SameSite=[^;]*/gi,
-                  "; SameSite=Lax"
-                );
+                // Remove SameSite entirely for HTTP development
+                rewritten = rewritten.replace(/;\s*SameSite=[^;]*/gi, "");
 
                 // Ensure Path is set to root
                 if (!rewritten.includes("Path=")) {
                   rewritten += "; Path=/";
-                } else {
-                  rewritten = rewritten.replace(/;\s*Path=[^;]*/gi, "; Path=/");
                 }
 
                 return rewritten;
