@@ -2,6 +2,11 @@ use actix_web::{web, HttpResponse};
 use sqlx::PgPool;
 use crate::database;
 use crate::utils::logging::hash_for_logging;
+use crate::utils::error_handler::{
+    handle_database_error,
+    handle_not_found,
+    handle_validation_error,
+};
 use crate::models::Suspect;
 
 /// GET /api/shared/suspects/{personal_id} - Retrieve suspect info by Swedish personal ID
@@ -18,10 +23,10 @@ async fn get_shared_suspect_info(
     
     // Validate personal ID format
     if !Suspect::validate_personal_id(&pid) {
-        log::warn!("Invalid personal_id format in shared API request");
-        return HttpResponse::BadRequest().json(serde_json::json!({
-            "error": "Invalid personal_id format. Expected: YYYYMMDD-XXXX"
-        }));
+        return handle_validation_error(
+            &format!("Invalid personal_id format: {}", hash_for_logging(&pid)),
+            "get_shared_suspect_info"
+        );
     }
     
     log::info!("Shared API: Hospital system querying suspect info for personal_id hash: {}", 
@@ -36,16 +41,9 @@ async fn get_shared_suspect_info(
         Ok(None) => {
             log::info!("Shared API: No suspect record found for personal_id hash: {}", 
                 hash_for_logging(&pid));
-            HttpResponse::NotFound().json(serde_json::json!({
-                "error": "No suspect record found"
-            }))
+            handle_not_found("suspect", &hash_for_logging(&pid))
         }
-        Err(e) => {
-            log::error!("Shared API: Database error querying suspect: {}", e);
-            HttpResponse::InternalServerError().json(serde_json::json!({
-                "error": "Service temporarily unavailable"
-            }))
-        }
+        Err(e) => handle_database_error(e, "get_shared_suspect_info"),
     }
 }
 
@@ -65,12 +63,7 @@ async fn get_all_shared_suspects(
             log::info!("Shared API: Returning {} suspect records", suspects.len());
             HttpResponse::Ok().json(suspects)
         }
-        Err(e) => {
-            log::error!("Shared API: Database error retrieving suspects: {}", e);
-            HttpResponse::InternalServerError().json(serde_json::json!({
-                "error": "Service temporarily unavailable"
-            }))
-        }
+        Err(e) => handle_database_error(e, "get_all_shared_suspects"),
     }
 }
 

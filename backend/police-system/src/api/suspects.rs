@@ -4,6 +4,11 @@ use sqlx::PgPool;
 use crate::database;
 use crate::models::{CreateSuspect, UpdateSuspect, Suspect};
 use crate::utils::logging::hash_for_logging;
+use crate::utils::error_handler::{
+    handle_database_error,
+    handle_not_found,
+    handle_validation_error,
+};
 
 /// Request body for flag updates - now includes personal_id
 #[derive(Deserialize)]
@@ -19,12 +24,7 @@ async fn get_all_suspects(pool: web::Data<PgPool>) -> HttpResponse {
             log::info!("Retrieved {} suspects", suspects.len());
             HttpResponse::Ok().json(suspects)
         }
-        Err(e) => {
-            log::error!("Failed to retrieve suspects: {}", e);
-            HttpResponse::InternalServerError().json(serde_json::json!({
-                "error": "Service temporarily unavailable"
-            }))
-        }
+        Err(e) => handle_database_error(e, "get_all_suspects"),
     }
 }
 
@@ -40,18 +40,8 @@ async fn get_suspect_by_id(
             log::info!("Retrieved suspect with ID {}", suspect_id);
             HttpResponse::Ok().json(suspect)
         }
-        Ok(None) => {
-            log::warn!("Suspect with ID {} not found", suspect_id);
-            HttpResponse::NotFound().json(serde_json::json!({
-                "error": "Suspect not found"
-            }))
-        }
-        Err(e) => {
-            log::error!("Failed to retrieve suspect {}: {}", suspect_id, e);
-            HttpResponse::InternalServerError().json(serde_json::json!({
-                "error": "Service temporarily unavailable"
-            }))
-        }
+        Ok(None) => handle_not_found("suspect", &suspect_id.to_string()),
+        Err(e) => handle_database_error(e, "get_suspect_by_id"),
     }
 }
 
@@ -64,10 +54,10 @@ async fn get_suspect_by_personal_id(
     
     // Validate personal ID format
     if !Suspect::validate_personal_id(&pid) {
-        log::warn!("Invalid personal_id format in request");
-        return HttpResponse::BadRequest().json(serde_json::json!({
-            "error": "Invalid personal_id format. Expected: YYYYMMDD-XXXX"
-        }));
+        return handle_validation_error(
+            &format!("Invalid personal_id format: {}", hash_for_logging(&pid)),
+            "get_suspect_by_personal_id"
+        );
     }
     
     match database::get_suspect_by_personal_id(&pool, &pid).await {
@@ -75,18 +65,8 @@ async fn get_suspect_by_personal_id(
             log::info!("Retrieved suspect with personal_id hash: {}", hash_for_logging(&pid));
             HttpResponse::Ok().json(suspect)
         }
-        Ok(None) => {
-            log::warn!("Suspect with personal_id hash {} not found", hash_for_logging(&pid));
-            HttpResponse::NotFound().json(serde_json::json!({
-                "error": "Suspect not found"
-            }))
-        }
-        Err(e) => {
-            log::error!("Failed to retrieve suspect: {}", e);
-            HttpResponse::InternalServerError().json(serde_json::json!({
-                "error": "Service temporarily unavailable"
-            }))
-        }
+        Ok(None) => handle_not_found("suspect", &hash_for_logging(&pid)),
+        Err(e) => handle_database_error(e, "get_suspect_by_personal_id"),
     }
 }
 
@@ -99,10 +79,10 @@ async fn create_suspect(
     
     // Validate personal ID format
     if !Suspect::validate_personal_id(&suspect_data.personal_id) {
-        log::warn!("Invalid personal_id format in create request");
-        return HttpResponse::BadRequest().json(serde_json::json!({
-            "error": "Invalid personal_id format. Expected: YYYYMMDD-XXXX"
-        }));
+        return handle_validation_error(
+            &format!("Invalid personal_id format: {}", hash_for_logging(&suspect_data.personal_id)),
+            "create_suspect"
+        );
     }
     
     match database::create_suspect(&pool, suspect_data).await {
@@ -112,12 +92,7 @@ async fn create_suspect(
                 hash_for_logging(&created_suspect.personal_id.as_ref().unwrap_or(&String::new())));
             HttpResponse::Created().json(created_suspect)
         }
-        Err(e) => {
-            log::error!("Failed to create suspect: {}", e);
-            HttpResponse::InternalServerError().json(serde_json::json!({
-                "error": "Service temporarily unavailable"
-            }))
-        }
+        Err(e) => handle_database_error(e, "create_suspect"),
     }
 }
 
@@ -132,10 +107,10 @@ async fn update_suspect(
     
     // Validate personal ID format if provided
     if !Suspect::validate_personal_id(&suspect_data.personal_id) {
-        log::warn!("Invalid personal_id format in update request");
-        return HttpResponse::BadRequest().json(serde_json::json!({
-            "error": "Invalid personal_id format. Expected: YYYYMMDD-XXXX"
-        }));
+        return handle_validation_error(
+            &format!("Invalid personal_id format: {}", hash_for_logging(&suspect_data.personal_id)),
+            "update_suspect"
+        );
     }
     
     match database::update_suspect(&pool, suspect_id, suspect_data).await {
@@ -143,18 +118,8 @@ async fn update_suspect(
             log::info!("Updated suspect with ID {}", suspect_id);
             HttpResponse::Ok().json(updated_suspect)
         }
-        Ok(None) => {
-            log::warn!("Suspect with ID {} not found for update", suspect_id);
-            HttpResponse::NotFound().json(serde_json::json!({
-                "error": "Suspect not found"
-            }))
-        }
-        Err(e) => {
-            log::error!("Failed to update suspect {}: {}", suspect_id, e);
-            HttpResponse::InternalServerError().json(serde_json::json!({
-                "error": "Service temporarily unavailable"
-            }))
-        }
+        Ok(None) => handle_not_found("suspect", &suspect_id.to_string()),
+        Err(e) => handle_database_error(e, "update_suspect"),
     }
 }
 
@@ -170,18 +135,8 @@ async fn delete_suspect(
             log::info!("Deleted suspect with ID {}", suspect_id);
             HttpResponse::NoContent().finish()
         }
-        Ok(false) => {
-            log::warn!("Suspect with ID {} not found for deletion", suspect_id);
-            HttpResponse::NotFound().json(serde_json::json!({
-                "error": "Suspect not found"
-            }))
-        }
-        Err(e) => {
-            log::error!("Failed to delete suspect {}: {}", suspect_id, e);
-            HttpResponse::InternalServerError().json(serde_json::json!({
-                "error": "Service temporarily unavailable"
-            }))
-        }
+        Ok(false) => handle_not_found("suspect", &suspect_id.to_string()),
+        Err(e) => handle_database_error(e, "delete_suspect"),
     }
 }
 
@@ -199,10 +154,10 @@ async fn update_flag(
     
     // Validate personal ID format
     if !Suspect::validate_personal_id(&request.personal_id) {
-        log::warn!("Invalid personal_id format in flag update request");
-        return HttpResponse::BadRequest().json(serde_json::json!({
-            "error": "Invalid personal_id format. Expected: YYYYMMDD-XXXX"
-        }));
+        return handle_validation_error(
+            &format!("Invalid personal_id format: {}", hash_for_logging(&request.personal_id)),
+            "update_flag"
+        );
     }
     
     match database::update_flag(&pool, &request.personal_id, request.flag).await {
@@ -214,19 +169,8 @@ async fn update_flag(
             );
             HttpResponse::Ok().json(updated_suspect)
         }
-        Ok(None) => {
-            log::warn!("Suspect with personal_id hash {} not found for flag update", 
-                hash_for_logging(&request.personal_id));
-            HttpResponse::NotFound().json(serde_json::json!({
-                "error": "Suspect not found"
-            }))
-        }
-        Err(e) => {
-            log::error!("Failed to update flag for suspect: {}", e);
-            HttpResponse::InternalServerError().json(serde_json::json!({
-                "error": "Service temporarily unavailable"
-            }))
-        }
+        Ok(None) => handle_not_found("suspect", &hash_for_logging(&request.personal_id)),
+        Err(e) => handle_database_error(e, "update_flag"),
     }
 }
 

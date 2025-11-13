@@ -9,6 +9,7 @@ description = "Police backend service for thesis project"
 # Web framework with rustls support
 actix-web = { version = "4", features = ["rustls-0_21", "cookies"] }
 actix-cors = "0.7"
+uuid = { version = "1.10", features = ["v4", "serde"] }
 
 # Database
 sqlx = { version = "0.7", features = ["runtime-tokio-native-tls", "postgres", "macros"] }

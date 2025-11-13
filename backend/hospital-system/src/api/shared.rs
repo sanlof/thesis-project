@@ -1,6 +1,10 @@
 use actix_web::{web, HttpResponse};
 use sqlx::PgPool;
 use crate::database;
+use crate::utils::error_handler::{
+    handle_database_error,
+    handle_not_found,
+};
 
 /// GET /api/shared/patients/{personal_id} - Retrieve patient info by Swedish personal ID
 /// 
@@ -30,16 +34,9 @@ async fn get_shared_patient_info(
         }
         Ok(None) => {
             log::info!("Shared API: No patient record for {}", sanitized_pid);
-            HttpResponse::NotFound().json(serde_json::json!({
-                "error": "No patient record found"
-            }))
+            handle_not_found("patient", &sanitized_pid)
         }
-        Err(e) => {
-            log::error!("Shared API: Database error for {}: {}", sanitized_pid, e);
-            HttpResponse::InternalServerError().json(serde_json::json!({
-                "error": "Failed to query patient information"
-            }))
-        }
+        Err(e) => handle_database_error(e, "get_shared_patient_info"),
     }
 }
 
@@ -57,12 +54,7 @@ async fn get_all_shared_patients(pool: web::Data<PgPool>) -> HttpResponse {
             log::info!("Shared API: Returning {} patient records", patients.len());
             HttpResponse::Ok().json(patients)
         }
-        Err(e) => {
-            log::error!("Shared API: Database error: {}", e);
-            HttpResponse::InternalServerError().json(serde_json::json!({
-                "error": "Failed to retrieve patients"
-            }))
-        }
+        Err(e) => handle_database_error(e, "get_all_shared_patients"),
     }
 }
 
@@ -81,12 +73,7 @@ async fn get_shared_flagged_patients(pool: web::Data<PgPool>) -> HttpResponse {
             log::info!("Shared API: Returning {} flagged records", flagged_patients.len());
             HttpResponse::Ok().json(flagged_patients)
         }
-        Err(e) => {
-            log::error!("Shared API: Database error: {}", e);
-            HttpResponse::InternalServerError().json(serde_json::json!({
-                "error": "Failed to retrieve flagged patients"
-            }))
-        }
+        Err(e) => handle_database_error(e, "get_shared_flagged_patients"),
     }
 }
 
