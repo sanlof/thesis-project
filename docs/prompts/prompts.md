@@ -112,11 +112,11 @@ The backend endpoint already exists and automatically syncs flags to the hospita
 
 _Prompt submitted with repository access granted to the AI (docs/prompts excluded)_
 
-## Context
+### Context
 
 Thesis project with police/hospital systems (Rust backend, React frontend). When police flag suspects, the database syncs instantly via PostgreSQL triggers, but the hospital frontend doesn't auto-refresh.
 
-## Task
+### Task
 
 Add **smart polling** to `frontend/src/components/HospitalData.tsx` that:
 
@@ -126,7 +126,7 @@ Add **smart polling** to `frontend/src/components/HospitalData.tsx` that:
 - Cleans up on unmount
 - Handles errors gracefully
 
-## Requirements
+### Requirements
 
 - Create custom hook `usePolling` in `frontend/src/hooks/usePolling.ts`
 - Update `HospitalData.tsx` to use the hook
@@ -137,13 +137,13 @@ Add **smart polling** to `frontend/src/components/HospitalData.tsx` that:
 - **Do not add, change, or remove any existing styling**
 - **Do not include any code comments**
 
-## Deliverables
+### Deliverables
 
 1. `usePolling.ts` – Custom hook with polling logic
 2. Updated `HospitalData.tsx` – Using the hook with refresh indicator
 3. Brief explanation of implementation
 
-## Success Criteria
+### Success Criteria
 
 - Polling starts/stops correctly
 - Pauses when tab inactive
