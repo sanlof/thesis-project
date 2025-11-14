@@ -90,7 +90,7 @@ The project includes a pre-configured testing script that runs all 12 security t
 
 ```bash
 # Navigate to testing directory
-cd testing
+cd testing/nmap/
 
 # Make executable (first time only)
 chmod +x run-all-scans.sh
