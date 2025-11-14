@@ -84,7 +84,6 @@ async fn main() -> std::io::Result<()> {
     
     log::info!("✅ Security configuration loaded");
     log::info!("   - API Key authentication: ENABLED for shared endpoints");
-    log::info!("   - CSRF protection: ENABLED for state-changing operations");
     log::info!("   - Rate limiting (general): {} req/s, burst: {}", 
         general_rate_limit_per_second, general_rate_limit_burst);
     log::info!("   - Rate limiting (shared API): {} req/s, burst: {}", 
@@ -124,17 +123,16 @@ async fn main() -> std::io::Result<()> {
     // Log available routes
     log::info!("📋 Configuring routes:");
     log::info!("   - GET    /suspects (general rate limit)");
-    log::info!("   - POST   /suspects (CSRF protected)");
+    log::info!("   - POST   /suspects");
     log::info!("   - GET    /suspects/{{id}}");
-    log::info!("   - PUT    /suspects/{{id}} (CSRF protected)");
-    log::info!("   - DELETE /suspects/{{id}} (CSRF protected)");
+    log::info!("   - PUT    /suspects/{{id}}");
+    log::info!("   - DELETE /suspects/{{id}}");
     log::info!("   - GET    /suspects/personal/{{personal_id}}");
-    log::info!("   - POST   /suspects/flag (CSRF protected)");
+    log::info!("   - POST   /suspects/flag");
     log::info!("   - GET    /api/shared/suspects (API Key + strict rate limit)");
     log::info!("   - GET    /api/shared/suspects/{{personal_id}} (API Key + strict rate limit)");
     
     log::info!("🔒 API Key authentication required for /api/shared/* endpoints");
-    log::info!("🛡️  CSRF protection active for POST/PUT/DELETE endpoints");
     log::info!("⏱️  Strict per-API-key rate limiting on /api/shared/* endpoints");
     
     // Clone variables for move into closure
@@ -162,11 +160,9 @@ async fn main() -> std::io::Result<()> {
                 actix_web::http::header::CONTENT_TYPE,
                 actix_web::http::header::AUTHORIZATION,
                 actix_web::http::header::HeaderName::from_static("x-api-key"),
-                actix_web::http::header::HeaderName::from_static("x-csrf-token"),
             ])
             .expose_headers(vec![
                 actix_web::http::header::CONTENT_TYPE,
-                actix_web::http::header::SET_COOKIE,
             ])
             .max_age(3600)
             .supports_credentials();
@@ -198,7 +194,6 @@ async fn main() -> std::io::Result<()> {
             .wrap(actix_middleware::Logger::default())
             .wrap(cors)
             .wrap(general_rate_limiter)  // General rate limiting
-            .wrap(middleware::CsrfProtection::new(enable_tls_clone))
             .wrap(security_headers)  // Comprehensive security headers
             
             // Share database pool across all handlers

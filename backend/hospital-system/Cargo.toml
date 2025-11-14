@@ -7,7 +7,7 @@ description = "Hospital backend service for thesis project"
 
 [dependencies]
 # Web framework with rustls support
-actix-web = { version = "4", features = ["rustls-0_21", "cookies"] }
+actix-web = { version = "4", features = ["rustls-0_21"] }
 actix-cors = "0.7"
 uuid = { version = "1.10", features = ["v4", "serde"] }
 
@@ -32,8 +32,6 @@ log = "0.4"
 sha2 = "0.10"
 hex = "0.4"
 constant_time_eq = "0.3"
-base64 = "0.22"
-rand = "0.8"
 subtle = "2.5"
 
 # Rate limiting
