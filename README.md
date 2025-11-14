@@ -1,8 +1,10 @@
-# ⚠️ EDUCATIONAL RESEARCH PROJECT
+# Police & Hospital Data Sharing System
+
+## ⚠️ EDUCATIONAL RESEARCH PROJECT
 
 **This is a higher education thesis project investigating AI-generated code security through iterative prompting.**
 
-## Research Purpose
+### Research Purpose
 
 This repository demonstrates the security capabilities and limitations of AI-assisted development. We investigate: **"How secure can data transfer between systems become when using AI assistants with iterative security-focused prompting?"**
 
@@ -15,6 +17,8 @@ This repository demonstrates the security capabilities and limitations of AI-ass
 
 **Key Finding**: AI assistants generate functional but potentially insecure code. This project documents whether and how security can be improved through better prompting.
 
+---
+
 ## ⚠️ WARNING: RESEARCH CODE - NOT PRODUCTION-READY
 
 - All systems use **fictitious data** (no real personal information)
@@ -23,18 +27,654 @@ This repository demonstrates the security capabilities and limitations of AI-ass
 - Contains vulnerabilities typical of **AI-generated code without security review**
 - **NO real systems, NO operational use, NO sensitive data**
 
-## Legal Notice
+---
 
-This is a student academic project at Yrgo, Higher Vocational Education, Gothenburg.
+## Project Overview
 
-**Unauthorized use of included security testing tools on systems you don't own is illegal.** These tools (nmap, OWASP ZAP) were used exclusively on locally-hosted development servers with fictitious data for academic research purposes.
+A proof-of-concept system demonstrating secure data sharing between two independent organizations (police and hospital) while maintaining data sovereignty. The key innovation is using PostgreSQL's Foreign Data Wrapper to enable automatic flag synchronization at the database level.
 
-## Research Questions
+### Key Features
+
+- **Independent Backend Services**: Separate Rust/Actix systems for police and hospital
+- **Automatic Flag Synchronization**: Database triggers via postgres_fdw
+- **Cross-System Data Queries**: Shared API endpoints with authentication
+- **React Frontend**: Data visualization with real-time updates
+- **Swedish Personal ID Format**: YYYYMMDD-XXXX identity management
+- **Security Features**: TLS support, API key authentication, rate limiting, audit logging
+
+---
+
+## Table of Contents
+
+- [Technology Stack](#technology-stack)
+- [Quick Start](#quick-start)
+- [Project Structure](#project-structure)
+- [Architecture](#architecture)
+- [Security Features](#security-features)
+- [API Documentation](#api-documentation)
+- [Database Setup](#database-setup)
+- [Development Workflow](#development-workflow)
+- [Testing](#testing)
+- [Research Context](#research-context)
+- [Legal Notice](#legal-notice)
+
+---
+
+## Technology Stack
+
+### Backend
+
+- **Language**: Rust (latest stable)
+- **Web Framework**: Actix-web 4.x with rustls for TLS
+- **Database**: PostgreSQL 15+ with postgres_fdw extension
+- **Async Runtime**: Tokio 1.x
+- **Database Driver**: SQLx 0.7 (async, compile-time checked queries)
+- **Security**: API key authentication, rate limiting, audit logging
+- **Serialization**: Serde 1.x with JSON support
+
+### Frontend
+
+- **UI Library**: React 18.3.1
+- **Language**: TypeScript 5.5.3
+- **Build Tool**: Vite 5.4.0 with HMR
+- **Features**: Real-time polling, flag toggle interface
+
+### Database
+
+- **Database**: PostgreSQL 15+
+- **Extensions**: postgres_fdw (Foreign Data Wrapper)
+- **Features**: Automatic flag synchronization, foreign schema imports
+
+---
+
+## Quick Start
+
+### Prerequisites
+
+- **macOS** (tested on recent versions)
+- **Homebrew**: `brew install postgresql@15 rust node`
+- **PostgreSQL 15+**: `brew services start postgresql@15`
+- **Rust**: Latest stable (installed via Homebrew or rustup)
+- **Node.js 18+**: For frontend development
+
+### Installation & Setup
+
+```bash
+# 1. Clone the repository
+git clone <repository-url>
+cd thesis-project
+
+# 2. Set up PostgreSQL databases
+createuser -s postgres
+psql -U postgres -f shared/database-schemas/schema.sql
+psql -U postgres -f shared/database-schemas/seed-data.sql
+
+# 3. Configure backend environment files
+cp backend/police-system/.env.example backend/police-system/.env
+cp backend/hospital-system/.env.example backend/hospital-system/.env
+
+# Edit .env files with your configuration
+# At minimum, set strong API keys:
+# API_KEY=<generate with: openssl rand -hex 32>
+
+# 4. Install frontend dependencies
+cd frontend
+npm install
+cd ..
+```
+
+### Running the Application
+
+```bash
+# Terminal 1: Police System
+cd backend/police-system
+cargo run
+
+# Terminal 2: Hospital System
+cd backend/hospital-system
+cargo run
+
+# Terminal 3: Frontend
+cd frontend
+npm run dev
+```
+
+**Access Points:**
+
+- Frontend: http://localhost:3000
+- Police API: http://localhost:8000
+- Hospital API: http://localhost:8001
+
+---
+
+## Project Structure
+
+```
+thesis-project/
+├── backend/
+│   ├── police-system/              # Police backend (Rust/Actix)
+│   │   ├── src/
+│   │   │   ├── main.rs            # Entry point & server setup
+│   │   │   ├── api/               # REST endpoints
+│   │   │   ├── models/            # Data structures
+│   │   │   ├── database/          # Database layer
+│   │   │   ├── middleware/        # Auth, rate limiting
+│   │   │   ├── config.rs          # Configuration management
+│   │   │   └── utils/             # Helpers, logging, errors
+│   │   ├── Cargo.toml
+│   │   ├── .env.example
+│   │   ├── cert.pem               # TLS certificate (self-signed)
+│   │   └── key.pem                # TLS private key
+│   │
+│   └── hospital-system/            # Hospital backend (Rust/Actix)
+│       ├── src/                   # Same structure as police-system
+│       ├── Cargo.toml
+│       ├── .env.example
+│       ├── cert.pem
+│       └── key.pem
+│
+├── frontend/                       # React + TypeScript UI
+│   ├── src/
+│   │   ├── main.tsx               # React entry point
+│   │   ├── App.tsx                # Root component
+│   │   ├── types.ts               # TypeScript definitions
+│   │   ├── components/            # UI components
+│   │   │   ├── PoliceData.tsx     # Suspects display & flag toggle
+│   │   │   └── HospitalData.tsx   # Patients display
+│   │   └── hooks/
+│   │       └── usePolling.ts      # Custom polling hook
+│   ├── vite.config.ts             # Vite config with proxies
+│   ├── package.json
+│   └── tsconfig.json
+│
+├── shared/
+│   └── database-schemas/
+│       ├── schema.sql              # Database structure & FDW setup
+│       └── seed-data.sql           # Sample data
+│
+├── docs/
+│   ├── API.md                      # Complete API reference
+│   ├── psql-guide.md               # PostgreSQL setup guide
+│   └── security/
+│       └── generate-cert-and-keys.md
+│
+├── testing/                        # Security testing tools
+│   ├── README.md                   # Testing overview
+│   ├── WARNING.md                  # Legal warnings
+│   ├── nmap/                       # Network scanning
+│   │   ├── instructions.md
+│   │   └── run-all-scans.sh
+│   └── zap/                        # OWASP ZAP testing
+│       └── instructions.md
+│
+├── .gitignore
+├── ARCHITECTURE.md                 # Detailed architecture docs
+├── LICENSE                         # MIT License
+├── README.md                       # This file
+├── SECURITY_NOTICE.md              # Research context
+└── generate-api-keys.sh            # Helper script for key generation
+```
+
+---
+
+## Architecture
+
+### High-Level Architecture
+
+```
+┌─────────────────────────────────────────┐
+│     React Frontend (Port: 3000)         │
+│  ┌───────────────────────────────────┐  │
+│  │  PoliceData   │  HospitalData     │  │
+│  │  Component    │  Component        │  │
+│  └───────────────────────────────────┘  │
+│         │                    │          │
+│      Vite Proxy (API calls)             │
+└─────────┼────────────────────┼──────────┘
+          │                    │
+          │ HTTPS/HTTP         │ HTTPS/HTTP
+          ▼                    ▼
+┌─────────────────────┐  ┌─────────────────────┐
+│  Police Backend     │  │  Hospital Backend   │
+│  Rust/Actix (8000)  │  │  Rust/Actix (8001)  │
+│                     │  │                     │
+│  ┌───────────────┐  │  │  ┌───────────────┐  │
+│  │ API Endpoints │  │  │  │ API Endpoints │  │
+│  │ - /suspects   │  │  │  │ - /patients   │  │
+│  │ - /api/shared │  │  │  │ - /api/shared │  │
+│  └───────────────┘  │  │  └───────────────┘  │
+│  ┌───────────────┐  │  │  ┌───────────────┐  │
+│  │ Middleware    │  │  │  │ Middleware    │  │
+│  │ - API Key     │  │  │  │ - API Key     │  │
+│  │ - Rate Limit  │  │  │  │ - Rate Limit  │  │
+│  │ - TLS         │  │  │  │ - TLS         │  │
+│  └───────────────┘  │  │  └───────────────┘  │
+│         │           │  │         │           │
+│    SQLx Pool        │  │    SQLx Pool        │
+└──────────┬──────────┘  └──────────┬──────────┘
+           │                        │
+           │ postgres_fdw           │
+           │ (Foreign Data Wrapper) │
+           ▼                        │
+    ┌──────────────────────┐        │
+    │   PostgreSQL Setup   │        │
+    ├──────────────────────┤        │
+    │  police_db           │        │
+    │  ├─ suspects table   │        │
+    │  └─ patients (FDW)   │◄───────┘
+    │                      │
+    │  hospital_db         │
+    │  └─ patients table   │
+    └──────────────────────┘
+               ▲
+               │  Trigger: sync_flag_to_hospital()
+               │  Auto-syncs flag updates
+```
+
+### Key Architectural Decisions
+
+1. **Independent Services**: Each system (police/hospital) runs as a separate service with its own database
+2. **Database-Level Sync**: Flag synchronization happens via postgres_fdw triggers, not API calls
+3. **Shared API Endpoints**: `/api/shared/*` routes require API key authentication for inter-system queries
+4. **TLS Optional**: Configurable HTTPS support for production environments
+5. **Rate Limiting**: Two-tier system (general + strict for shared APIs)
+
+---
+
+## Security Features
+
+### Implemented Security Measures
+
+#### 1. **TLS/HTTPS Support**
+
+```bash
+# Generate self-signed certificates (development)
+openssl req -x509 -newkey rsa:4096 -nodes \
+  -keyout backend/police-system/key.pem \
+  -out backend/police-system/cert.pem \
+  -days 365 -subj "/CN=localhost"
+```
+
+Configuration in `.env`:
+
+```env
+ENABLE_TLS=true
+TLS_CERT_PATH=/path/to/cert.pem
+TLS_KEY_PATH=/path/to/key.pem
+```
+
+#### 2. **API Key Authentication**
+
+- **Inter-System Communication**: All `/api/shared/*` endpoints require `X-API-Key` header
+- **Constant-Time Comparison**: Prevents timing attacks
+- **Middleware-Based**: Applied at the route level
+
+Generate keys:
+
+```bash
+openssl rand -hex 32
+```
+
+#### 3. **Rate Limiting**
+
+**Two-Tier System:**
+
+- **General Endpoints**: IP-based rate limiting (configurable, default: 60 req/min)
+- **Shared API Endpoints**: Per-API-key rate limiting (stricter, default: 1 req/sec, burst: 5)
+
+```rust
+// General rate limiter (IP-based)
+let general_rate_limiter = configure_rate_limiter(60, 100);
+
+// Strict rate limiter (API-key-based)
+let shared_api_rate_limiter = configure_shared_api_rate_limiter(1, 5);
+```
+
+#### 4. **Security Headers**
+
+Automatically applied to all responses:
+
+- `X-Content-Type-Options: nosniff`
+- `X-Frame-Options: DENY`
+- `X-XSS-Protection: 1; mode=block`
+- `Content-Security-Policy: default-src 'none'`
+- `Referrer-Policy: no-referrer`
+- `Strict-Transport-Security` (when TLS enabled)
+
+#### 5. **Audit Logging**
+
+All sensitive operations are logged with:
+
+- Event type (flag update, shared API access, etc.)
+- Actor (API key hash or "internal")
+- Action (read, create, update, delete)
+- Resource (hashed personal_id)
+- Result (success/failure)
+- IP address
+- Timestamp
+
+Example:
+
+```json
+{
+  "timestamp": "2025-01-15T10:30:45Z",
+  "event_type": "FLAG_UPDATE",
+  "actor": "internal",
+  "action": "UPDATE",
+  "resource": "suspect:a3f5e8d2b1c4",
+  "result": "SUCCESS",
+  "ip_address": "127.0.0.1",
+  "details": "Flag updated to true"
+}
+```
+
+#### 6. **Input Validation**
+
+- Swedish personal ID format validation (YYYYMMDD-XXXX)
+- Type-safe database queries (SQLx compile-time checks)
+- Request payload size limits
+
+#### 7. **CORS Configuration**
+
+- **Development**: Configurable origins via `ALLOWED_ORIGINS` env var
+- **Production**: Only HTTPS origins allowed (enforced at startup)
+- No wildcard (`*`) origins in production
+
+#### 8. **Error Handling**
+
+- **Correlation IDs**: Unique UUID for each error for tracking
+- **Safe Error Messages**: Generic messages to clients, detailed logs server-side
+- **No Information Leakage**: Database credentials never logged
+
+#### 9. **Personal Data Protection**
+
+- **Sanitized Logging**: Personal IDs hashed (SHA-256) in logs
+- **Request Body vs URL**: Sensitive data (personal_id) moved from URL paths to request bodies
+- **Minimal Exposure**: Only necessary data returned in responses
+
+---
+
+## API Documentation
+
+See [docs/API.md](docs/API.md) for complete API reference.
+
+### Quick Reference
+
+#### Police System (`http://localhost:8000`)
+
+| Endpoint                             | Method | Description                 | Auth Required |
+| ------------------------------------ | ------ | --------------------------- | ------------- |
+| `/health`                            | GET    | Health check                | No            |
+| `/suspects`                          | GET    | List all suspects           | No            |
+| `/suspects`                          | POST   | Create suspect              | No            |
+| `/suspects/{id}`                     | GET    | Get suspect by ID           | No            |
+| `/suspects/{id}`                     | PUT    | Update suspect              | No            |
+| `/suspects/{id}`                     | DELETE | Delete suspect              | No            |
+| `/suspects/personal/{personal_id}`   | GET    | Get suspect by personal ID  | No            |
+| `/suspects/flag`                     | POST   | Update flag (triggers sync) | No            |
+| `/api/shared/suspects`               | GET    | List all suspects           | **Yes**       |
+| `/api/shared/suspects/{personal_id}` | GET    | Check suspect record        | **Yes**       |
+
+#### Hospital System (`http://localhost:8001`)
+
+| Endpoint                             | Method | Description                | Auth Required |
+| ------------------------------------ | ------ | -------------------------- | ------------- |
+| `/health`                            | GET    | Health check               | No            |
+| `/patients`                          | GET    | List all patients          | No            |
+| `/patients`                          | POST   | Create patient             | No            |
+| `/patients/{id}`                     | GET    | Get patient by ID          | No            |
+| `/patients/{id}`                     | PUT    | Update patient             | No            |
+| `/patients/{id}`                     | DELETE | Delete patient             | No            |
+| `/patients/personal/{personal_id}`   | GET    | Get patient by personal ID | No            |
+| `/patients/flagged`                  | GET    | Get all flagged patients   | No            |
+| `/api/shared/patients`               | GET    | List all patients          | **Yes**       |
+| `/api/shared/patients/flagged`       | GET    | List flagged patients      | **Yes**       |
+| `/api/shared/patients/{personal_id}` | GET    | Check patient record       | **Yes**       |
+
+### Example: Update Flag
+
+```bash
+# Flag a suspect in police system
+curl -X POST http://localhost:8000/suspects/flag \
+  -H "Content-Type: application/json" \
+  -d '{
+    "personal_id": "19850312-2398",
+    "flag": true
+  }'
+
+# Flag automatically syncs to hospital database
+# Verify immediately:
+curl http://localhost:8001/patients/personal/19850312-2398
+```
+
+---
+
+## Database Setup
+
+### PostgreSQL Configuration
+
+See [docs/psql-guide.md](docs/psql-guide.md) for detailed setup instructions.
+
+**Quick Setup:**
+
+```bash
+# Install PostgreSQL
+brew install postgresql@15
+brew services start postgresql@15
+
+# Create superuser
+createuser -s postgres
+
+# Create databases and schema
+psql -U postgres -f shared/database-schemas/schema.sql
+
+# Seed with sample data
+psql -U postgres -f shared/database-schemas/seed-data.sql
+```
+
+### Database Schema
+
+**Police Database (police_db):**
+
+```sql
+CREATE TABLE suspects (
+    id SERIAL PRIMARY KEY,
+    full_name TEXT,
+    personal_id TEXT UNIQUE,
+    flag BOOLEAN
+);
+```
+
+**Hospital Database (hospital_db):**
+
+```sql
+CREATE TABLE patients (
+    id SERIAL PRIMARY KEY,
+    full_name TEXT,
+    personal_id TEXT UNIQUE,
+    flag BOOLEAN
+);
+```
+
+### Foreign Data Wrapper Setup
+
+```sql
+-- In police_db
+CREATE SERVER hospital_server
+    FOREIGN DATA WRAPPER postgres_fdw
+    OPTIONS (dbname 'hospital_db', host 'localhost');
+
+CREATE USER MAPPING FOR CURRENT_USER
+    SERVER hospital_server
+    OPTIONS (user 'postgres', password '');
+
+IMPORT FOREIGN SCHEMA public
+    LIMIT TO (patients)
+    FROM SERVER hospital_server
+    INTO public;
+```
+
+### Automatic Synchronization Trigger
+
+```sql
+CREATE OR REPLACE FUNCTION sync_flag_to_hospital()
+RETURNS TRIGGER AS $$
+BEGIN
+    UPDATE patients
+    SET flag = NEW.flag
+    WHERE personal_id = NEW.personal_id;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trg_sync_flag
+    AFTER UPDATE OF flag ON suspects
+    FOR EACH ROW
+    EXECUTE FUNCTION sync_flag_to_hospital();
+```
+
+---
+
+## Development Workflow
+
+### Environment Setup
+
+**Police System (.env):**
+
+```env
+DATABASE_URL=postgresql://postgres@localhost/police_db
+SERVER_PORT=8000
+API_KEY=<generate-with-openssl-rand-hex-32>
+HOSPITAL_API_KEY=<for-calling-hospital-system>
+ALLOWED_ORIGINS=http://localhost:8001,http://localhost:3000
+ENABLE_TLS=false
+RATE_LIMIT_PER_SECOND=10
+RATE_LIMIT_BURST=20
+SHARED_API_RATE_LIMIT_PER_SECOND=1
+SHARED_API_RATE_LIMIT_BURST=5
+```
+
+**Hospital System (.env):**
+
+```env
+DATABASE_URL=postgresql://postgres@localhost/hospital_db
+SERVER_PORT=8001
+API_KEY=<generate-with-openssl-rand-hex-32>
+ALLOWED_ORIGINS=http://localhost:8000,http://localhost:3000
+ENABLE_TLS=false
+RATE_LIMIT_REQUESTS_PER_MINUTE=60
+SHARED_API_RATE_LIMIT_PER_SECOND=1
+SHARED_API_RATE_LIMIT_BURST=5
+```
+
+### Starting Development Servers
+
+```bash
+# Terminal 1: PostgreSQL
+brew services start postgresql@15
+
+# Terminal 2: Police Backend
+cd backend/police-system
+cargo run
+# Listens on http://localhost:8000
+
+# Terminal 3: Hospital Backend
+cd backend/hospital-system
+cargo run
+# Listens on http://localhost:8001
+
+# Terminal 4: Frontend
+cd frontend
+npm run dev
+# Listens on http://localhost:3000
+```
+
+### Testing Flag Synchronization
+
+```bash
+# 1. Update flag in police system
+curl -X POST http://localhost:8000/suspects/flag \
+  -H "Content-Type: application/json" \
+  -d '{"personal_id": "19850312-2398", "flag": true}'
+
+# 2. Verify sync in hospital system (immediate)
+curl http://localhost:8001/patients/personal/19850312-2398
+
+# 3. Check via frontend
+# Visit http://localhost:3000 and toggle flags
+```
+
+---
+
+## Testing
+
+### Backend Testin
+
+**Manual API Testing:**
+
+```bash
+# Health checks
+curl http://localhost:8000/health
+curl http://localhost:8001/health
+
+# Get all suspects/patients
+curl http://localhost:8000/suspects
+curl http://localhost:8001/patients
+
+# Test shared API (requires API key)
+curl http://localhost:8000/api/shared/suspects/19850312-2398 \
+  -H "X-API-Key: your-api-key-here"
+
+curl http://localhost:8001/api/shared/patients/19850312-2398 \
+  -H "X-API-Key: your-api-key-here"
+```
+
+### Security Testing
+
+**⚠️ WARNING**: Security testing tools are for authorized use only on systems you own.
+
+See `testing/README.md` and `testing/WARNING.md` for important legal notices.
+
+#### Network Scanning (nmap)
+
+```bash
+cd testing/nmap
+
+# Read warnings first
+cat ../WARNING.md
+
+# Run automated scan
+./run-all-scans.sh
+```
+
+#### Web Application Security (OWASP ZAP)
+
+```bash
+# See testing/zap/instructions.md for setup
+
+# Install OWASP ZAP
+brew install --cask owasp-zap
+
+# Follow instructions for automated scanning
+```
+
+---
+
+## Research Context
+
+### Academic Context
+
+- **Institution**: Yrgo, Higher Vocational Education, Gothenburg
+- **Program**: Web Development
+- **Thesis Topic**: Security Analysis of AI-Generated Code with Iterative Prompting
+- **Status**: All research activities are concluded and the project is finished.
+
+### Research Questions
 
 1. **Can AI generate secure data transfer code when explicitly prompted for security?**
 2. **What security gaps persist even with security-focused prompts?**
 
-## Research Scope
+### Research Scope
 
 **Focus Area**: Data-in-transit security between independent systems
 
@@ -54,15 +694,40 @@ This is a student academic project at Yrgo, Higher Vocational Education, Gothenb
 - Infrastructure/server configuration
 - GDPR compliance
 
-## Academic Context
+### Methodology
 
-- **Institution**: Yrgo, Higher Vocational Education, Gothenburg
-- **Program**: Web Development
-- **Thesis Topic**: Security Analysis of AI-Generated Code with Iterative Prompting
-- **Status**: Active Research Project
+1. **Initial Generation**: Prompted AI to create functional system
+2. **Security Testing**: Identified vulnerabilities using nmap and OWASP ZAP
+3. **Iterative Improvement**: Re-prompted AI with security requirements
+4. **Analysis**: Documented improvements and remaining gaps
 
 ---
 
-_This is a work-in-progress research project. Documentation will be finalized with thesis completion._
+## Legal Notice
 
-_Last Updated: November 2025_
+### Ethical Use Statement
+
+**This project is for educational and research purposes only.**
+
+- ✅ All testing performed on localhost
+- ✅ Fictitious data only (no real PII)
+- ✅ Systems we own and control
+- ✅ Authorized academic research
+
+**Unauthorized use of included security testing tools on systems you don't own is illegal.**
+
+These tools (nmap, OWASP ZAP) were used exclusively on locally-hosted development servers with fictitious data for academic research purposes.
+
+### License
+
+MIT License
+
+---
+
+## References
+
+- [PostgreSQL Foreign Data Wrapper Documentation](https://www.postgresql.org/docs/current/postgres-fdw.html)
+- [Actix-web Documentation](https://actix.rs/)
+- [SQLx Documentation](https://github.com/launchbadge/sqlx)
+- [React Documentation](https://react.dev/)
+- [OWASP ZAP Documentation](https://www.zaproxy.org/docs/)
