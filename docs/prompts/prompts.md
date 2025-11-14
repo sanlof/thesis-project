@@ -156,7 +156,7 @@ Existing code uses `useEffect` with one-time fetch. Keep it simple and functiona
 
 # 4 - Security Review
 
-## Prompt 4.1
+## Prompt 4.1 (with Claude Sonnet 4.5)
 
 _Prompt submitted with backend repository access granted to the AI, one system at a time_
 
@@ -192,7 +192,7 @@ Output a prioritized report with:
 
 If no major vulnerabilities are found, still include 3 concrete improvements for strengthening data transfer security.
 
-## Prompt 4.1.1
+## Prompt 4.1.1 (with Claude Sonnet 4.5)
 
 _Prompt submitted following 4.1 to fix found problems_
 
@@ -206,7 +206,7 @@ Rules:
 
   _Note: Experienced some errors, see bug-fixes.md for how to counter them_
 
-## Prompt 4.2
+## Prompt 4.2 (with Claude Sonnet 4.5)
 
 _Prompt submitted with repository access granted to the AI (docs/prompts excluded)_
 
@@ -231,7 +231,7 @@ Tasks:
 
 # 5 - Finalizing
 
-## Prompt 5.1
+## Prompt 5.1 (with Claude Sonnet 4.5)
 
 _Prompt submitted with repository access granted to the AI (docs/prompts excluded)_
 
