@@ -228,3 +228,11 @@ Tasks:
 2. Check for insecure defaults, missing encryption, unsafe serialization/deserialization, or data exposure.
 3. Suggest concrete improvements (code-level or configuration) to make the data transfer secure.
 4. Assume the repo content follows below.
+
+# 5 - Finalizing
+
+## Prompt 5.1
+
+_Prompt submitted with repository access granted to the AI (docs/prompts excluded)_
+
+Update README.md, ARCHITECTURE.md, and docs/API.md to match the current project iteration. Ensure that all sections accurately describe the latest system behavior, architecture changes, API endpoints, and usage instructions.
