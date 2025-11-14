@@ -62,7 +62,7 @@ _Prompt submitted with repository access granted to the AI (docs/prompts exclude
 
 Using this repo, create a series of AI prompts in order to generate code for the entire backend of this project.
 
-_See `backend-prompts.md` for results._
+_See [`backend-prompts.md`](backend-prompts.md) for results._
 
 # 3 - Building the Frontend
 
