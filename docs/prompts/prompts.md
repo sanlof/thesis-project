@@ -242,3 +242,9 @@ _See [`full-security-audit.md`](full-security-audit.md) for results._
 _Prompt submitted with repository access granted to the AI (docs/prompts excluded)_
 
 Update README.md, ARCHITECTURE.md, and docs/API.md to match the current project iteration. Ensure that all sections accurately describe the latest system behavior, architecture changes, API endpoints, and usage instructions.
+
+## Promot 5.2 (with ChatGPT 5.0)
+
+_Prompt submitted with frontend file access granted to the AI_
+
+Enhance the frontend design of the website so that the styling matches and complements the site's content.
