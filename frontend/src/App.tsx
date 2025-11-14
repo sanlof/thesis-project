@@ -1,18 +1,22 @@
 import PoliceData from "./components/PoliceData";
 import HospitalData from "./components/HospitalData";
+import "./styles.css";
 
 function App() {
   return (
-    <div>
-      <h1>Police and Hospital Data System</h1>
+    <div className="container">
+      <header>
+        <h1>Police & Hospital Data System</h1>
+        <p>Real-time monitoring of suspects and patients</p>
+      </header>
 
-      <h2>Police System - Suspects</h2>
-      <PoliceData />
+      <section>
+        <PoliceData />
+      </section>
 
-      <hr />
-
-      <h2>Hospital System - Patients</h2>
-      <HospitalData />
+      <section>
+        <HospitalData />
+      </section>
     </div>
   );
 }

@@ -1,0 +1,117 @@
+/* General layout */
+body {
+  font-family: Arial, sans-serif;
+  background-color: #f7f8fa;
+  margin: 0;
+  padding: 0;
+}
+
+.container {
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 2rem;
+}
+
+header {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+header h1 {
+  font-size: 2.5rem;
+  color: #333;
+  margin-bottom: 0.5rem;
+}
+
+header p {
+  color: #666;
+  font-size: 1rem;
+}
+
+/* Card-style sections */
+.card {
+  background-color: #fff;
+  padding: 1.5rem;
+  border-radius: 0.5rem;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+  margin-bottom: 2rem;
+}
+
+/* Tables */
+.table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.table th,
+.table td {
+  padding: 0.5rem 1rem;
+  border: 1px solid #ddd;
+}
+
+.table th {
+  background-color: #e0f2ff; /* Default blue, can override for green in hospital */
+  text-align: left;
+}
+
+.table tr:nth-child(even) {
+  background-color: #f9f9f9;
+}
+
+.table tr:hover {
+  background-color: #f1f5f9;
+}
+
+/* Police & Hospital headers */
+.header-police {
+  color: #1d4ed8; /* blue */
+}
+
+.header-hospital {
+  color: #059669; /* green */
+}
+
+/* Buttons */
+.button-flag {
+  padding: 0.3rem 0.7rem;
+  border-radius: 0.25rem;
+  cursor: pointer;
+  color: white;
+  font-weight: bold;
+  border: none;
+  transition: background-color 0.2s;
+}
+
+.button-flag.flag {
+  background-color: #16a34a; /* green */
+}
+
+.button-flag.flag:hover {
+  background-color: #15803d;
+}
+
+.button-flag.unflag {
+  background-color: #dc2626; /* red */
+}
+
+.button-flag.unflag:hover {
+  background-color: #b91c1c;
+}
+
+.button-flag.disabled {
+  background-color: #a0aec0;
+  cursor: not-allowed;
+}
+
+/* Error messages */
+.error {
+  color: red;
+  margin-bottom: 1rem;
+}
+
+/* Small notes */
+.note {
+  margin-top: 0.5rem;
+  font-size: 0.9rem;
+  color: #666;
+}
