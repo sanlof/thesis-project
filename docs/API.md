@@ -34,13 +34,24 @@ Both systems use PostgreSQL with Foreign Data Wrapper (FDW) for automatic flag s
 
 ## Authentication
 
-**Current Status:** No authentication required (development mode)
+### Shared API Endpoints
 
-**Future Implementation:** JWT-based authentication
+Endpoints under `/api/shared/*` require API key authentication:
 
-- Set `Authorization: Bearer <token>` header
-- Token obtained via `/auth/login` endpoint (to be implemented)
-- Admin vs regular user roles (to be implemented)
+- **Header:** `X-API-Key`
+- **Value:** 32+ character secure key (configured via environment variables)
+- **Method:** All `/api/shared/*` routes validate the API key using constant-time comparison
+
+**Example:**
+
+```bash
+curl http://localhost:8000/api/shared/suspects \
+  -H "X-API-Key: your-api-key-here"
+```
+
+### Public Endpoints
+
+Standard CRUD endpoints (e.g., `/suspects`, `/patients`) do not require authentication in the current implementation.
 
 ## Error Responses
 
@@ -48,19 +59,23 @@ All errors follow this JSON format:
 
 ```json
 {
-  "error": "Error message description"
+  "error": "Error message description",
+  "correlation_id": "550e8400-e29b-41d4-a716-446655440000"
 }
 ```
 
 ### Common HTTP Status Codes
 
-| Code | Meaning               | When Used                  |
-| ---- | --------------------- | -------------------------- |
-| 200  | OK                    | Successful GET/PUT request |
-| 201  | Created               | Successful POST request    |
-| 204  | No Content            | Successful DELETE request  |
-| 404  | Not Found             | Resource doesn't exist     |
-| 500  | Internal Server Error | Database or server error   |
+| Code | Meaning               | When Used                         |
+| ---- | --------------------- | --------------------------------- |
+| 200  | OK                    | Successful GET/PUT request        |
+| 201  | Created               | Successful POST request           |
+| 204  | No Content            | Successful DELETE request         |
+| 400  | Bad Request           | Invalid request format/validation |
+| 401  | Unauthorized          | Missing or invalid API key        |
+| 404  | Not Found             | Resource doesn't exist            |
+| 429  | Too Many Requests     | Rate limit exceeded               |
+| 500  | Internal Server Error | Database or server error          |
 
 ---
 
@@ -182,7 +197,8 @@ Retrieve a specific suspect by their database ID.
 
 ```json
 {
-  "error": "Suspect not found"
+  "error": "Resource not found",
+  "correlation_id": "550e8400-e29b-41d4-a716-446655440000"
 }
 ```
 
@@ -219,7 +235,8 @@ Retrieve a suspect by their Swedish personal ID.
 
 ```json
 {
-  "error": "Suspect not found"
+  "error": "Resource not found",
+  "correlation_id": "550e8400-e29b-41d4-a716-446655440000"
 }
 ```
 
@@ -258,11 +275,12 @@ Add a new suspect to the database.
 }
 ```
 
-**Error Response:** `500 Internal Server Error`
+**Error Response:** `400 Bad Request`
 
 ```json
 {
-  "error": "Failed to create suspect"
+  "error": "Invalid request format",
+  "correlation_id": "550e8400-e29b-41d4-a716-446655440000"
 }
 ```
 
@@ -300,7 +318,7 @@ Update an existing suspect's information.
 }
 ```
 
-**Note:** Only `personal_id` is required. Other fields are optional.
+**Note:** `personal_id` is required. Other fields are optional.
 
 **Response:** `200 OK`
 
@@ -317,7 +335,8 @@ Update an existing suspect's information.
 
 ```json
 {
-  "error": "Suspect not found"
+  "error": "Resource not found",
+  "correlation_id": "550e8400-e29b-41d4-a716-446655440000"
 }
 ```
 
@@ -339,16 +358,13 @@ curl -X PUT http://localhost:8000/suspects/11 \
 
 Update a suspect's flag status. **This triggers automatic synchronization to the hospital database.**
 
-**Endpoint:** `PUT /suspects/{personal_id}/flag`
-
-**Parameters:**
-
-- `personal_id` (path, string) - Swedish personal ID (YYYYMMDD-XXXX)
+**Endpoint:** `POST /suspects/flag`
 
 **Request Body:**
 
 ```json
 {
+  "personal_id": "19850312-2398",
   "flag": true
 }
 ```
@@ -368,16 +384,26 @@ Update a suspect's flag status. **This triggers automatic synchronization to the
 
 ```json
 {
-  "error": "Suspect not found"
+  "error": "Resource not found",
+  "correlation_id": "550e8400-e29b-41d4-a716-446655440000"
+}
+```
+
+**Error Response:** `400 Bad Request`
+
+```json
+{
+  "error": "Invalid request format",
+  "correlation_id": "550e8400-e29b-41d4-a716-446655440000"
 }
 ```
 
 **Example:**
 
 ```bash
-curl -X PUT http://localhost:8000/suspects/19850312-2398/flag \
+curl -X POST http://localhost:8000/suspects/flag \
   -H "Content-Type: application/json" \
-  -d '{"flag": true}'
+  -d '{"personal_id": "19850312-2398", "flag": true}'
 ```
 
 **Important:** When you update a flag in the police system, it automatically synchronizes to the hospital system via PostgreSQL triggers. No additional API calls are needed.
@@ -400,7 +426,8 @@ Remove a suspect from the database.
 
 ```json
 {
-  "error": "Suspect not found"
+  "error": "Resource not found",
+  "correlation_id": "550e8400-e29b-41d4-a716-446655440000"
 }
 ```
 
@@ -412,9 +439,17 @@ curl -X DELETE http://localhost:8000/suspects/11
 
 ---
 
-### Shared API: Get All Suspects (For Hospital)
+### Shared API: Get All Suspects
+
+**Authentication Required:** API Key
 
 **Endpoint:** `GET /api/shared/suspects`
+
+**Headers:**
+
+- `X-API-Key: <your-api-key>`
+
+**Rate Limit:** 1 request/second, burst: 5
 
 This endpoint allows the hospital system to retrieve all suspects for cross-referencing.
 
@@ -431,23 +466,48 @@ This endpoint allows the hospital system to retrieve all suspects for cross-refe
 ]
 ```
 
+**Error Response:** `401 Unauthorized`
+
+```json
+{
+  "error": "API key required"
+}
+```
+
+**Error Response:** `429 Too Many Requests`
+
+```json
+{
+  "error": "Too many requests"
+}
+```
+
 **Example:**
 
 ```bash
-curl http://localhost:8000/api/shared/suspects
+curl http://localhost:8000/api/shared/suspects \
+  -H "X-API-Key: your-api-key-here"
 ```
 
 ---
 
-### Shared API: Check Suspect Record (For Hospital)
+### Shared API: Check Suspect Record
+
+**Authentication Required:** API Key
 
 **Endpoint:** `GET /api/shared/suspects/{personal_id}`
 
-This endpoint allows the hospital system to check if a specific person has a police record.
+**Headers:**
+
+- `X-API-Key: <your-api-key>`
+
+**Rate Limit:** 1 request/second, burst: 5
 
 **Parameters:**
 
 - `personal_id` (path, string) - Swedish personal ID
+
+This endpoint allows the hospital system to check if a specific person has a police record.
 
 **Response:** `200 OK` (has record)
 
@@ -464,15 +524,24 @@ This endpoint allows the hospital system to check if a specific person has a pol
 
 ```json
 {
-  "error": "No suspect record found",
-  "personal_id": "19850312-2398"
+  "error": "Resource not found",
+  "correlation_id": "550e8400-e29b-41d4-a716-446655440000"
+}
+```
+
+**Error Response:** `401 Unauthorized`
+
+```json
+{
+  "error": "Invalid API key"
 }
 ```
 
 **Example:**
 
 ```bash
-curl http://localhost:8000/api/shared/suspects/19850312-2398
+curl http://localhost:8000/api/shared/suspects/19850312-2398 \
+  -H "X-API-Key: your-api-key-here"
 ```
 
 ---
@@ -562,7 +631,8 @@ Retrieve a specific patient by their database ID.
 
 ```json
 {
-  "error": "Patient not found"
+  "error": "Resource not found",
+  "correlation_id": "550e8400-e29b-41d4-a716-446655440000"
 }
 ```
 
@@ -599,7 +669,8 @@ Retrieve a patient by their Swedish personal ID.
 
 ```json
 {
-  "error": "Patient not found"
+  "error": "Resource not found",
+  "correlation_id": "550e8400-e29b-41d4-a716-446655440000"
 }
 ```
 
@@ -673,11 +744,12 @@ Register a new patient in the hospital database.
 }
 ```
 
-**Error Response:** `500 Internal Server Error`
+**Error Response:** `400 Bad Request`
 
 ```json
 {
-  "error": "Failed to create patient"
+  "error": "Invalid request format",
+  "correlation_id": "550e8400-e29b-41d4-a716-446655440000"
 }
 ```
 
@@ -715,7 +787,7 @@ Update an existing patient's information.
 }
 ```
 
-**Note:** Only `personal_id` is required. Other fields are optional. However, you typically should not manually change the `flag` field as it's managed by the police system.
+**Note:** `personal_id` is required. Other fields are optional. However, you typically should not manually change the `flag` field as it's managed by the police system.
 
 **Response:** `200 OK`
 
@@ -732,7 +804,8 @@ Update an existing patient's information.
 
 ```json
 {
-  "error": "Patient not found"
+  "error": "Resource not found",
+  "correlation_id": "550e8400-e29b-41d4-a716-446655440000"
 }
 ```
 
@@ -765,7 +838,8 @@ Remove a patient from the database.
 
 ```json
 {
-  "error": "Patient not found"
+  "error": "Resource not found",
+  "correlation_id": "550e8400-e29b-41d4-a716-446655440000"
 }
 ```
 
@@ -777,9 +851,17 @@ curl -X DELETE http://localhost:8001/patients/9
 
 ---
 
-### Shared API: Get All Patients (For Police)
+### Shared API: Get All Patients
+
+**Authentication Required:** API Key
 
 **Endpoint:** `GET /api/shared/patients`
+
+**Headers:**
+
+- `X-API-Key: <your-api-key>`
+
+**Rate Limit:** 1 request/second, burst: 5
 
 This endpoint allows the police system to retrieve all patients for cross-referencing.
 
@@ -796,17 +878,34 @@ This endpoint allows the police system to retrieve all patients for cross-refere
 ]
 ```
 
+**Error Response:** `401 Unauthorized`
+
+```json
+{
+  "error": "API key required"
+}
+```
+
 **Example:**
 
 ```bash
-curl http://localhost:8001/api/shared/patients
+curl http://localhost:8001/api/shared/patients \
+  -H "X-API-Key: your-api-key-here"
 ```
 
 ---
 
-### Shared API: Get Flagged Patients (For Police)
+### Shared API: Get Flagged Patients
+
+**Authentication Required:** API Key
 
 **Endpoint:** `GET /api/shared/patients/flagged`
+
+**Headers:**
+
+- `X-API-Key: <your-api-key>`
+
+**Rate Limit:** 1 request/second, burst: 5
 
 This endpoint allows the police system to see which patients have been flagged.
 
@@ -823,23 +922,40 @@ This endpoint allows the police system to see which patients have been flagged.
 ]
 ```
 
+**Error Response:** `401 Unauthorized`
+
+```json
+{
+  "error": "Invalid API key"
+}
+```
+
 **Example:**
 
 ```bash
-curl http://localhost:8001/api/shared/patients/flagged
+curl http://localhost:8001/api/shared/patients/flagged \
+  -H "X-API-Key: your-api-key-here"
 ```
 
 ---
 
-### Shared API: Check Patient Record (For Police)
+### Shared API: Check Patient Record
+
+**Authentication Required:** API Key
 
 **Endpoint:** `GET /api/shared/patients/{personal_id}`
 
-This endpoint allows the police system to check if a specific person has hospital records.
+**Headers:**
+
+- `X-API-Key: <your-api-key>`
+
+**Rate Limit:** 1 request/second, burst: 5
 
 **Parameters:**
 
 - `personal_id` (path, string) - Swedish personal ID
+
+This endpoint allows the police system to check if a specific person has hospital records.
 
 **Response:** `200 OK` (has record)
 
@@ -856,15 +972,24 @@ This endpoint allows the police system to check if a specific person has hospita
 
 ```json
 {
-  "error": "No patient record found",
-  "personal_id": "19850312-2398"
+  "error": "Resource not found",
+  "correlation_id": "550e8400-e29b-41d4-a716-446655440000"
+}
+```
+
+**Error Response:** `401 Unauthorized`
+
+```json
+{
+  "error": "API key required"
 }
 ```
 
 **Example:**
 
 ```bash
-curl http://localhost:8001/api/shared/patients/19850312-2398
+curl http://localhost:8001/api/shared/patients/19850312-2398 \
+  -H "X-API-Key: your-api-key-here"
 ```
 
 ---
@@ -877,7 +1002,8 @@ The hospital system can check if a patient has a police record using the shared 
 
 ```bash
 # Check if patient Erik Andersson (19850312-2398) has a police record
-curl http://localhost:8000/api/shared/suspects/19850312-2398
+curl http://localhost:8000/api/shared/suspects/19850312-2398 \
+  -H "X-API-Key: your-hospital-api-key"
 ```
 
 **Use Case:** When admitting a patient, the hospital can query the police system to check for any criminal records.
@@ -897,8 +1023,8 @@ curl http://localhost:8000/api/shared/suspects/19850312-2398
 
 ```json
 {
-  "error": "No suspect record found",
-  "personal_id": "19850312-2398"
+  "error": "Resource not found",
+  "correlation_id": "550e8400-e29b-41d4-a716-446655440000"
 }
 ```
 
@@ -910,7 +1036,8 @@ The police system can check if a suspect has hospital records using the shared A
 
 ```bash
 # Check if suspect Anna Karlsson (19900204-1457) has medical records
-curl http://localhost:8001/api/shared/patients/19900204-1457
+curl http://localhost:8001/api/shared/patients/19900204-1457 \
+  -H "X-API-Key: your-police-api-key"
 ```
 
 **Use Case:** During an investigation, police can query the hospital system to verify if a suspect has medical records.
@@ -930,8 +1057,8 @@ curl http://localhost:8001/api/shared/patients/19900204-1457
 
 ```json
 {
-  "error": "No patient record found",
-  "personal_id": "19900204-1457"
+  "error": "Resource not found",
+  "correlation_id": "550e8400-e29b-41d4-a716-446655440000"
 }
 ```
 
@@ -943,9 +1070,9 @@ When police flag a suspect, the flag automatically synchronizes to the hospital 
 
 ```bash
 # 1. Police flags a suspect
-curl -X PUT http://localhost:8000/suspects/19850312-2398/flag \
+curl -X POST http://localhost:8000/suspects/flag \
   -H "Content-Type: application/json" \
-  -d '{"flag": true}'
+  -d '{"personal_id": "19850312-2398", "flag": true}'
 
 # 2. Flag automatically syncs to hospital database (no API call needed!)
 
@@ -972,7 +1099,8 @@ curl -X POST http://localhost:8000/suspects \
   }'
 
 # Step 2: Check if this person has hospital records
-curl http://localhost:8001/api/shared/patients/19900101-1234
+curl http://localhost:8001/api/shared/patients/19900101-1234 \
+  -H "X-API-Key: your-police-api-key"
 ```
 
 ---
@@ -981,9 +1109,9 @@ curl http://localhost:8001/api/shared/patients/19900101-1234
 
 ```bash
 # Step 1: Flag the suspect in police system
-curl -X PUT http://localhost:8000/suspects/19850312-2398/flag \
+curl -X POST http://localhost:8000/suspects/flag \
   -H "Content-Type: application/json" \
-  -d '{"flag": true}'
+  -d '{"personal_id": "19850312-2398", "flag": true}'
 
 # Step 2: Verify the flag synced to hospital
 curl http://localhost:8001/patients/personal/19850312-2398
@@ -1001,7 +1129,8 @@ curl http://localhost:8001/patients/flagged
 curl http://localhost:8001/patients/personal/19900204-1457
 
 # Step 2: Check if patient has police record
-curl http://localhost:8000/api/shared/suspects/19900204-1457
+curl http://localhost:8000/api/shared/suspects/19900204-1457 \
+  -H "X-API-Key: your-hospital-api-key"
 
 # Response indicates patient is in police database
 ```
@@ -1024,15 +1153,39 @@ curl http://localhost:8001/patients
 
 ## Development Notes
 
+### Rate Limiting
+
+Both systems implement two-tier rate limiting:
+
+**General Endpoints (IP-based):**
+
+- Default: 10 requests/second, burst: 20
+- Configurable via `RATE_LIMIT_PER_SECOND` and `RATE_LIMIT_BURST`
+
+**Shared API Endpoints (API-key-based):**
+
+- Default: 1 request/second, burst: 5
+- Configurable via `SHARED_API_RATE_LIMIT_PER_SECOND` and `SHARED_API_RATE_LIMIT_BURST`
+
+When rate limited, you'll receive:
+
+```json
+HTTP/1.1 429 Too Many Requests
+Retry-After: 5
+
+{
+  "error": "Too many requests"
+}
+```
+
 ### CORS Configuration
 
 Both systems have CORS enabled for cross-origin requests:
 
-- Police system accepts requests from `http://localhost:8001`
-- Hospital system accepts requests from `http://localhost:8000`
-- Both accept requests from any origin in development mode
-
-**Production:** Remove `allow_any_origin()` and only allow specific trusted origins.
+- Police system accepts requests from origins specified in `ALLOWED_ORIGINS`
+- Hospital system accepts requests from origins specified in `ALLOWED_ORIGINS`
+- Development: HTTP localhost origins allowed
+- Production: Only HTTPS origins allowed (enforced at startup)
 
 ### Database Synchronization
 
@@ -1043,15 +1196,15 @@ Flag synchronization happens at the database level using:
 
 No API-level synchronization is needed.
 
-### Future Enhancements
+### Security Features
 
-- JWT authentication with role-based access control
-- Rate limiting per IP address
-- API versioning (e.g., `/api/v1/suspects`)
-- Audit logging for all data access
-- Pagination for list endpoints
-- Search and filtering capabilities
-- Webhook notifications for flag changes
+- **TLS Support:** Optional HTTPS (configure via `ENABLE_TLS`)
+- **API Key Authentication:** Required for `/api/shared/*` endpoints
+- **Rate Limiting:** Two-tier system (general + strict for shared APIs)
+- **Security Headers:** Comprehensive HTTP security headers automatically applied
+- **Audit Logging:** All sensitive operations logged with correlation IDs
+- **Input Validation:** Swedish personal ID format validation
+- **Error Handling:** Generic error messages to clients, detailed logs server-side
 
 ---
 
@@ -1074,14 +1227,16 @@ curl -s http://localhost:8001/patients | jq
 
 # Test Inter-System Communication
 echo "Testing Inter-System Communication..."
-curl -s http://localhost:8000/api/shared/suspects/19850312-2398 | jq
-curl -s http://localhost:8001/api/shared/patients/19850312-2398 | jq
+curl -s http://localhost:8000/api/shared/suspects/19850312-2398 \
+  -H "X-API-Key: your-api-key-here" | jq
+curl -s http://localhost:8001/api/shared/patients/19850312-2398 \
+  -H "X-API-Key: your-api-key-here" | jq
 
 # Test Flag Synchronization
 echo "Testing Flag Synchronization..."
-curl -s -X PUT http://localhost:8000/suspects/19850312-2398/flag \
+curl -s -X POST http://localhost:8000/suspects/flag \
   -H "Content-Type: application/json" \
-  -d '{"flag": true}' | jq
+  -d '{"personal_id": "19850312-2398", "flag": true}' | jq
 
 sleep 1
 
@@ -1096,11 +1251,11 @@ Save as `test-api.sh`, make executable with `chmod +x test-api.sh`, and run with
 
 For issues or questions:
 
-- Check server logs for detailed error messages
+- Check server logs for detailed error messages (includes correlation IDs)
 - Verify PostgreSQL is running: `brew services list`
 - Confirm environment variables are set correctly in `.env` files
 - Test database connectivity: `psql -U postgres -d police_db`
 
 ---
 
-_Last Updated: 2025_
+_Last Updated: November 2025_
