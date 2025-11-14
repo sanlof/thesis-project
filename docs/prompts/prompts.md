@@ -229,6 +229,12 @@ Tasks:
 3. Suggest concrete improvements (code-level or configuration) to make the data transfer secure.
 4. Assume the repo content follows below.
 
+## Prompt 4.2.1 (with Claude Sonnet 4.5)
+
+Based on this security audit, provide a series of prompts for an AI to remedy the critical and high-priority vulnerabilities one at a time.
+
+_See [`full-security-audit.md`](full-security-audit.md) for results._
+
 # 5 - Finalizing
 
 ## Prompt 5.1 (with Claude Sonnet 4.5)
