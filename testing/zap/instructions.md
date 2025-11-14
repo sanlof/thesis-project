@@ -6,7 +6,7 @@ By the end, you’ll have completed a working scan and reviewed relevant alerts 
 
 ---
 
-## ## Prerequisites
+## Prerequisites
 
 You’ll need:
 
@@ -32,8 +32,6 @@ Make sure each app runs locally before starting ZAP.
 ```bash
 brew install --cask owasp-zap
 ```
-
-````
 
 After installation, launch ZAP from **Applications > OWASP ZAP** or by typing:
 
@@ -324,4 +322,3 @@ You’ve:
 
 **Legal Note:**
 Only scan systems you own or have explicit permission to test.
-````
