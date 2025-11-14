@@ -2,6 +2,10 @@ use actix_web::{web, HttpResponse};
 use sqlx::PgPool;
 use crate::database;
 use crate::models::{CreatePatient, UpdatePatient};
+use crate::utils::error_handler::{
+    handle_database_error,
+    handle_not_found,
+};
 
 /// Sanitize personal ID for logging
 fn sanitize_pid_for_log(pid: &str) -> String {
@@ -19,12 +23,7 @@ async fn get_all_patients(pool: web::Data<PgPool>) -> HttpResponse {
             log::info!("Retrieved {} patients", patients.len());
             HttpResponse::Ok().json(patients)
         }
-        Err(_) => {
-            log::error!("Failed to retrieve patients");
-            HttpResponse::InternalServerError().json(serde_json::json!({
-                "error": "Failed to retrieve patients"
-            }))
-        }
+        Err(e) => handle_database_error(e, "get_all_patients"),
     }
 }
 
@@ -40,18 +39,8 @@ async fn get_patient_by_id(
             log::info!("Retrieved patient with ID {}", patient_id);
             HttpResponse::Ok().json(patient)
         }
-        Ok(None) => {
-            log::warn!("Patient with ID {} not found", patient_id);
-            HttpResponse::NotFound().json(serde_json::json!({
-                "error": "Patient not found"
-            }))
-        }
-        Err(_) => {
-            log::error!("Database error retrieving patient {}", patient_id);
-            HttpResponse::InternalServerError().json(serde_json::json!({
-                "error": "Failed to retrieve patient"
-            }))
-        }
+        Ok(None) => handle_not_found("patient", &patient_id.to_string()),
+        Err(e) => handle_database_error(e, "get_patient_by_id"),
     }
 }
 
@@ -68,18 +57,8 @@ async fn get_patient_by_personal_id(
             log::info!("Retrieved patient with personal_id {}", sanitized);
             HttpResponse::Ok().json(patient)
         }
-        Ok(None) => {
-            log::warn!("Patient with personal_id {} not found", sanitized);
-            HttpResponse::NotFound().json(serde_json::json!({
-                "error": "Patient not found"
-            }))
-        }
-        Err(_) => {
-            log::error!("Database error for patient {}", sanitized);
-            HttpResponse::InternalServerError().json(serde_json::json!({
-                "error": "Failed to retrieve patient"
-            }))
-        }
+        Ok(None) => handle_not_found("patient", &sanitized),
+        Err(e) => handle_database_error(e, "get_patient_by_personal_id"),
     }
 }
 
@@ -96,12 +75,7 @@ async fn create_patient(
             log::info!("Created patient {} with ID {}", sanitized, created_patient.id);
             HttpResponse::Created().json(created_patient)
         }
-        Err(_) => {
-            log::error!("Failed to create patient {}", sanitized);
-            HttpResponse::InternalServerError().json(serde_json::json!({
-                "error": "Failed to create patient"
-            }))
-        }
+        Err(e) => handle_database_error(e, "create_patient"),
     }
 }
 
@@ -120,18 +94,8 @@ async fn update_patient(
             log::info!("Updated patient {} with ID {}", sanitized, patient_id);
             HttpResponse::Ok().json(updated_patient)
         }
-        Ok(None) => {
-            log::warn!("Patient with ID {} not found for update", patient_id);
-            HttpResponse::NotFound().json(serde_json::json!({
-                "error": "Patient not found"
-            }))
-        }
-        Err(_) => {
-            log::error!("Database error updating patient {}", patient_id);
-            HttpResponse::InternalServerError().json(serde_json::json!({
-                "error": "Failed to update patient"
-            }))
-        }
+        Ok(None) => handle_not_found("patient", &patient_id.to_string()),
+        Err(e) => handle_database_error(e, "update_patient"),
     }
 }
 
@@ -147,18 +111,8 @@ async fn delete_patient(
             log::info!("Deleted patient with ID {}", patient_id);
             HttpResponse::NoContent().finish()
         }
-        Ok(false) => {
-            log::warn!("Patient with ID {} not found for deletion", patient_id);
-            HttpResponse::NotFound().json(serde_json::json!({
-                "error": "Patient not found"
-            }))
-        }
-        Err(_) => {
-            log::error!("Database error deleting patient {}", patient_id);
-            HttpResponse::InternalServerError().json(serde_json::json!({
-                "error": "Failed to delete patient"
-            }))
-        }
+        Ok(false) => handle_not_found("patient", &patient_id.to_string()),
+        Err(e) => handle_database_error(e, "delete_patient"),
     }
 }
 
@@ -169,12 +123,7 @@ async fn get_flagged_patients(pool: web::Data<PgPool>) -> HttpResponse {
             log::info!("Retrieved {} flagged patients", flagged_patients.len());
             HttpResponse::Ok().json(flagged_patients)
         }
-        Err(_) => {
-            log::error!("Failed to retrieve flagged patients");
-            HttpResponse::InternalServerError().json(serde_json::json!({
-                "error": "Failed to retrieve flagged patients"
-            }))
-        }
+        Err(e) => handle_database_error(e, "get_flagged_patients"),
     }
 }
 

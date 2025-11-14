@@ -1,3 +1,4 @@
+// frontend/src/types.ts
 /**
  * Type definitions for Police and Hospital System API
  *
@@ -73,10 +74,13 @@ export interface UpdatePatient {
 }
 
 /**
- * Flag update payload (for PUT /suspects/{personal_id}/flag)
- * Used when toggling the flag status of a suspect.
+ * Flag update payload (for POST /suspects/flag)
+ *
+ * SECURITY: Both personal_id and flag are now in the request body
+ * to prevent exposure of sensitive data in URL paths and server logs.
  */
-export interface FlagUpdate {
+export interface FlagUpdateRequest {
+  personal_id: string; // Swedish format: YYYYMMDD-XXXX
   flag: boolean;
 }
 

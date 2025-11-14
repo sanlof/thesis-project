@@ -4,10 +4,10 @@ use sha2::{Sha256, Digest};
 use std::fmt;
 
 /// Standard rate limiter using IP address
-pub fn configure_rate_limiter(requests_per_minute: u64) -> Governor<PeerIpKeyExtractor, NoOpMiddleware> {
+pub fn configure_rate_limiter(requests_per_second: u64, burst_size: u32) -> Governor<PeerIpKeyExtractor, NoOpMiddleware> {
     let governor_conf = GovernorConfigBuilder::default()
-        .per_second((60 / requests_per_minute).max(1))
-        .burst_size(requests_per_minute as u32)
+        .per_second(requests_per_second)
+        .burst_size(burst_size)
         .finish()
         .unwrap();
     

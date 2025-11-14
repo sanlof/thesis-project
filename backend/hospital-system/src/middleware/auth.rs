@@ -65,6 +65,8 @@ where
         match provided_key {
             Some(key) if constant_time_eq(key.as_bytes(), api_key.as_bytes()) => {
                 // Valid API key - proceed with request
+                log::info!("Authenticated API request to {} from IP: {:?}", 
+                    req.path(), req.peer_addr());
                 let fut = self.service.call(req);
                 Box::pin(async move {
                     let res = fut.await?;
@@ -73,7 +75,8 @@ where
             }
             Some(_) => {
                 // Invalid API key
-                log::warn!("Invalid API key provided from IP: {:?}", req.peer_addr());
+                log::warn!("Invalid API key provided for {} from IP: {:?}", 
+                    req.path(), req.peer_addr());
                 Box::pin(async move {
                     Ok(req.into_response(
                         HttpResponse::Unauthorized()
@@ -86,7 +89,8 @@ where
             }
             None => {
                 // Missing API key
-                log::warn!("Missing API key from IP: {:?}", req.peer_addr());
+                log::warn!("Missing API key for {} from IP: {:?}", 
+                    req.path(), req.peer_addr());
                 Box::pin(async move {
                     Ok(req.into_response(
                         HttpResponse::Unauthorized()

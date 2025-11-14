@@ -3,10 +3,15 @@ mod database;
 mod models;
 mod middleware;
 mod config;
+mod utils;
 
 use actix_web::{web, App, HttpServer, middleware as actix_middleware};
 use actix_cors::Cors;
 use config::Config;
+use std::fs::File;
+use std::io::BufReader;
+use rustls::{Certificate, PrivateKey, ServerConfig};
+use rustls_pemfile::{certs, pkcs8_private_keys};
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
@@ -24,8 +29,28 @@ async fn main() -> std::io::Result<()> {
     // Validate security configuration
     log::info!("✅ Security configuration loaded");
     log::info!("   - API Key authentication: ENABLED");
-    log::info!("   - Rate limiting: {} req/min", config.rate_limit_per_minute);
+    log::info!("   - Rate limiting (general): {} req/min", config.rate_limit_per_minute);
+    log::info!("   - Rate limiting (shared API): {} req/s, burst: {}", 
+        config.shared_api_rate_limit_per_second,
+        config.shared_api_rate_limit_burst);
     log::info!("   - TLS: {}", if config.enable_tls { "ENABLED" } else { "DISABLED (dev only)" });
+    log::info!("   - Security headers: ENABLED");
+    log::info!("   - Allowed CORS origins: {:?}", config.allowed_origins);
+    
+    // Validate origins in production
+    if !cfg!(debug_assertions) {
+        for origin in &config.allowed_origins {
+            if origin.starts_with("http://") {
+                log::error!("❌ PRODUCTION ERROR: HTTP origin detected: {}", origin);
+                panic!("Production mode requires HTTPS origins only. Found HTTP origin: {}", origin);
+            }
+            if origin.contains("localhost") || origin.contains("127.0.0.1") {
+                log::error!("❌ PRODUCTION ERROR: localhost origin detected: {}", origin);
+                panic!("Production mode cannot use localhost origins. Found: {}", origin);
+            }
+        }
+        log::info!("✅ All origins validated for production (HTTPS only)");
+    }
     
     if !config.enable_tls {
         log::warn!("⚠️  TLS is DISABLED - This is only acceptable in development!");
@@ -44,29 +69,43 @@ async fn main() -> std::io::Result<()> {
     
     // Log available routes
     log::info!("📋 Configuring routes:");
-    log::info!("   - GET    /patients (Internal)");
+    log::info!("   - GET    /patients (Internal, general rate limit)");
     log::info!("   - POST   /patients (Internal)");
     log::info!("   - GET    /patients/{{id}} (Internal)");
     log::info!("   - PUT    /patients/{{id}} (Internal)");
     log::info!("   - DELETE /patients/{{id}} (Internal)");
     log::info!("   - GET    /patients/personal/{{personal_id}} (Internal)");
     log::info!("   - GET    /patients/flagged (Internal)");
-    log::info!("   - GET    /api/shared/patients (Authenticated)");
-    log::info!("   - GET    /api/shared/patients/flagged (Authenticated)");
-    log::info!("   - GET    /api/shared/patients/{{personal_id}} (Authenticated)");
+    log::info!("   - GET    /api/shared/patients (API Key + strict rate limit)");
+    log::info!("   - GET    /api/shared/patients/flagged (API Key + strict rate limit)");
+    log::info!("   - GET    /api/shared/patients/{{personal_id}} (API Key + strict rate limit)");
     
-    log::info!("🚀 Starting HTTP server at http://{}", server_address);
     log::info!("🔒 API Key authentication required for /api/shared/* endpoints");
+    log::info!("⏱️  Strict per-API-key rate limiting on /api/shared/* endpoints");
     
     let api_key = config.api_key.clone();
     let allowed_origins = config.allowed_origins.clone();
+    let enable_tls = config.enable_tls;
+    let rate_limit_per_minute = config.rate_limit_per_minute;
+    let shared_rate_limit_per_second = config.shared_api_rate_limit_per_second;
+    let shared_rate_limit_burst = config.shared_api_rate_limit_burst;
     
-    // Create and run HTTP server
+    // Clone for use inside the closure
+    let allowed_origins_clone = allowed_origins.clone();
+    let enable_tls_clone = enable_tls;
+    
+    // Create HTTP server
     let server = HttpServer::new(move || {
-        // Create rate limiter for each worker
-        let rate_limiter = middleware::configure_rate_limiter(config.rate_limit_per_minute);
+        // Create general rate limiter (IP-based)
+        let rate_limiter = middleware::configure_rate_limiter(rate_limit_per_minute);
         
-        // Configure CORS - STRICT production settings
+        // Create strict rate limiter for shared API (API-key-based)
+        let shared_api_rate_limiter = middleware::configure_shared_api_rate_limiter(
+            shared_rate_limit_per_second,
+            shared_rate_limit_burst,
+        );
+        
+        // Configure CORS with strict origin whitelist
         let mut cors = Cors::default()
             .allowed_methods(vec!["GET", "POST", "PUT", "DELETE", "OPTIONS"])
             .allowed_headers(vec![
@@ -74,26 +113,40 @@ async fn main() -> std::io::Result<()> {
                 actix_web::http::header::AUTHORIZATION,
                 actix_web::http::header::HeaderName::from_static("x-api-key"),
             ])
-            .max_age(3600);
+            .expose_headers(vec![
+                actix_web::http::header::CONTENT_TYPE,
+            ])
+            .max_age(3600)
+            .supports_credentials();
         
-        // Only allow specific origins (no wildcard)
-        for origin in &allowed_origins {
+        // Add each allowed origin explicitly (no wildcards)
+        for origin in &allowed_origins_clone {
             cors = cors.allowed_origin(origin);
+        }
+        
+        // Build comprehensive security headers
+        let mut security_headers = actix_middleware::DefaultHeaders::new()
+            .add(("X-Content-Type-Options", "nosniff"))
+            .add(("X-Frame-Options", "DENY"))
+            .add(("X-XSS-Protection", "1; mode=block"))
+            .add(("Content-Security-Policy", "default-src 'none'"))
+            .add(("Referrer-Policy", "no-referrer"))
+            .add(("Permissions-Policy", "geolocation=(), microphone=(), camera=()"));
+        
+        // Add HSTS only if TLS is enabled
+        if enable_tls_clone {
+            security_headers = security_headers.add((
+                "Strict-Transport-Security",
+                "max-age=31536000; includeSubDomains; preload"
+            ));
         }
         
         App::new()
             // Add security middleware
             .wrap(actix_middleware::Logger::default())
             .wrap(cors)
-            .wrap(rate_limiter)
-            
-            // Add security headers
-            .wrap(actix_middleware::DefaultHeaders::new()
-                .add(("X-Content-Type-Options", "nosniff"))
-                .add(("X-Frame-Options", "DENY"))
-                .add(("X-XSS-Protection", "1; mode=block"))
-                .add(("Strict-Transport-Security", "max-age=31536000; includeSubDomains"))
-            )
+            .wrap(rate_limiter)  // General rate limiting
+            .wrap(security_headers)  // Comprehensive security headers
             
             // Share database pool across all handlers
             .app_data(web::Data::new(pool.clone()))
@@ -101,9 +154,10 @@ async fn main() -> std::io::Result<()> {
             // Configure API routes
             .configure(api::configure_patients)
             
-            // Shared API routes with authentication
+            // Shared API routes with authentication AND stricter rate limiting
             .service(
                 web::scope("/api/shared")
+                    .wrap(shared_api_rate_limiter)  // Apply strict rate limiting FIRST
                     .wrap(middleware::ApiKeyAuth::new(api_key.clone()))
                     .configure(api::configure_shared)
             )
@@ -112,22 +166,134 @@ async fn main() -> std::io::Result<()> {
             .route("/health", web::get().to(health_check))
     });
     
-    // Bind server with optional TLS
-    let server = if config.enable_tls {
-        log::info!("🔐 TLS enabled");
-        // In production, you would use:
-        // server.bind_rustls(&server_address, load_rustls_config(&config))?
-        // For now, we'll just bind normally and log a warning
-        log::warn!("⚠️  TLS binding not implemented yet - using HTTP");
-        server.bind(&server_address)?
+    // Bind server with or without TLS
+    if enable_tls {
+        log::info!("🔐 TLS enabled - loading certificates...");
+        
+        let tls_config = load_tls_config(&config)?;
+        
+        log::info!("🚀 Starting HTTPS server at https://{}", server_address);
+        log::info!("🔒 CORS restricted to: {:?}", allowed_origins);
+        log::info!("🛡️  Security headers enabled (including HSTS)");
+        
+        server
+            .bind_rustls_021(&server_address, tls_config)
+            .map_err(|e| {
+                log::error!("❌ Failed to bind HTTPS server to {}: {}", server_address, e);
+                e
+            })?
+            .run()
+            .await?;
     } else {
-        server.bind(&server_address)?
-    };
-    
-    server.run().await?;
+        log::info!("🚀 Starting HTTP server at http://{}", server_address);
+        log::info!("🔒 CORS restricted to: {:?}", allowed_origins);
+        log::info!("🛡️  Security headers enabled (HSTS excluded - TLS disabled)");
+        
+        server
+            .bind(&server_address)
+            .map_err(|e| {
+                log::error!("❌ Failed to bind HTTP server to {}: {}", server_address, e);
+                e
+            })?
+            .run()
+            .await?;
+    }
     
     log::info!("🛑 Hospital System shut down");
     Ok(())
+}
+
+/// Load TLS configuration from certificate and key files
+fn load_tls_config(config: &Config) -> std::io::Result<ServerConfig> {
+    let cert_path = config.tls_cert_path.as_ref()
+        .ok_or_else(|| {
+            log::error!("TLS_CERT_PATH not configured");
+            std::io::Error::new(
+                std::io::ErrorKind::NotFound,
+                "TLS_CERT_PATH not set"
+            )
+        })?;
+    
+    let key_path = config.tls_key_path.as_ref()
+        .ok_or_else(|| {
+            log::error!("TLS_KEY_PATH not configured");
+            std::io::Error::new(
+                std::io::ErrorKind::NotFound,
+                "TLS_KEY_PATH not set"
+            )
+        })?;
+    
+    log::info!("Loading certificate from: {}", cert_path);
+    log::info!("Loading private key from: {}", key_path);
+    
+    // Load certificate chain
+    let cert_file = File::open(cert_path)
+        .map_err(|e| {
+            log::error!("Failed to open certificate file '{}': {}", cert_path, e);
+            e
+        })?;
+    let mut cert_reader = BufReader::new(cert_file);
+    
+    let cert_chain: Vec<Certificate> = certs(&mut cert_reader)
+        .map_err(|e| {
+            log::error!("Failed to parse certificate file: {}", e);
+            std::io::Error::new(std::io::ErrorKind::InvalidData, e)
+        })?
+        .into_iter()
+        .map(Certificate)
+        .collect();
+    
+    if cert_chain.is_empty() {
+        log::error!("No certificates found in '{}'", cert_path);
+        return Err(std::io::Error::new(
+            std::io::ErrorKind::InvalidData,
+            "No certificates found in certificate file"
+        ));
+    }
+    
+    log::info!("✅ Loaded {} certificate(s)", cert_chain.len());
+    
+    // Load private key
+    let key_file = File::open(key_path)
+        .map_err(|e| {
+            log::error!("Failed to open private key file '{}': {}", key_path, e);
+            e
+        })?;
+    let mut key_reader = BufReader::new(key_file);
+    
+    let mut keys: Vec<PrivateKey> = pkcs8_private_keys(&mut key_reader)
+        .map_err(|e| {
+            log::error!("Failed to parse private key file: {}", e);
+            std::io::Error::new(std::io::ErrorKind::InvalidData, e)
+        })?
+        .into_iter()
+        .map(PrivateKey)
+        .collect();
+    
+    if keys.is_empty() {
+        log::error!("No private keys found in '{}'", key_path);
+        return Err(std::io::Error::new(
+            std::io::ErrorKind::InvalidData,
+            "No private keys found in key file"
+        ));
+    }
+    
+    let private_key = keys.remove(0);
+    log::info!("✅ Loaded private key");
+    
+    // Build TLS configuration
+    let tls_config = ServerConfig::builder()
+        .with_safe_defaults()
+        .with_no_client_auth()
+        .with_single_cert(cert_chain, private_key)
+        .map_err(|e| {
+            log::error!("Failed to build TLS configuration: {}", e);
+            std::io::Error::new(std::io::ErrorKind::InvalidInput, e)
+        })?;
+    
+    log::info!("✅ TLS configuration loaded successfully");
+    
+    Ok(tls_config)
 }
 
 /// Health check endpoint

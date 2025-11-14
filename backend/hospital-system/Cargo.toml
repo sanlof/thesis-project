@@ -6,9 +6,10 @@ authors = ["Your Name <your.email@example.com>"]
 description = "Hospital backend service for thesis project"
 
 [dependencies]
-# Web framework
-actix-web = "4"
+# Web framework with rustls support
+actix-web = { version = "4", features = ["rustls-0_21"] }
 actix-cors = "0.7"
+uuid = { version = "1.10", features = ["v4", "serde"] }
 
 # Database
 sqlx = { version = "0.7", features = ["runtime-tokio-native-tls", "postgres", "macros"] }
@@ -31,6 +32,7 @@ log = "0.4"
 sha2 = "0.10"
 hex = "0.4"
 constant_time_eq = "0.3"
+subtle = "2.5"
 
 # Rate limiting
 actix-governor = "0.5"
@@ -42,6 +44,10 @@ lazy_static = "1.5.0"
 
 # Async utilities
 futures-util = "0.3"
+
+# TLS support
+rustls = "0.21"
+rustls-pemfile = "1.0"
 
 [profile.dev]
 opt-level = 0

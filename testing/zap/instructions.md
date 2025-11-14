@@ -1,9 +1,67 @@
-Perfect 👍
-Here’s your ~1000-word Markdown guide (ready to copy into a `.md` file for GitHub):
+# ⚠️ STOP - READ THIS FIRST ⚠️
+
+## YOU MAY BE BREAKING THE LAW
+
+Before running ANY commands in this guide, understand:
+
+1. **These are penetration testing tools**
+2. **Using them without authorization is a crime in most countries**
+3. **"I didn't know" is not a legal defense**
+
+## Required Authorization Checklist
+
+You may ONLY proceed if ALL of these are true:
+
+- [ ] You are the system owner
+- [ ] These services are running on YOUR computer
+- [ ] You started these services yourself as part of the thesis project
+- [ ] You understand you are responsible for any misuse
+
+If you cannot check all boxes, **STOP NOW**.
 
 ---
 
-````markdown
+# Security Testing Guide: Data Transfer Security
+
+## ⚠️ EDUCATIONAL RESEARCH PROJECT
+
+**This guide documents penetration testing conducted on AI-generated code for academic thesis research.**
+
+### Critical Legal Notice
+
+**Before proceeding, understand that:**
+
+1. **Unauthorized security testing is illegal** - Using these tools without permission can violate:
+
+   - Computer Fraud and Abuse Act (USA)
+   - Computer Misuse Act (UK)
+   - Similar laws in most countries
+
+2. **Our research was authorized:**
+
+   - ✅ Testing on localhost only
+   - ✅ Systems we own and control
+   - ✅ Fictitious data only
+
+3. **This guide is for:**
+   - ✅ Understanding our research methodology
+   - ✅ Academic review and replication
+   - ✅ Educational purposes in authorized environments
+   - ❌ NOT for testing systems you don't own
+
+### Ethical Use Requirement
+
+If you use OWASP ZAP or similar tools based on this guide, you must:
+
+- Have explicit written authorization
+- Only test systems you own or have permission to test
+- Comply with all applicable laws
+- Follow responsible disclosure practices
+
+**Proceed only if you understand and accept these responsibilities.**
+
+---
+
 # OWASP ZAP Automated Scan – Guide (macOS)
 
 This guide walks you through installing and using **OWASP ZAP’s Automatic Scan** to test local web applications for common security issues.  
@@ -12,7 +70,7 @@ By the end, you’ll have completed a working scan and reviewed relevant alerts 
 
 ---
 
-## ## Prerequisites
+## Prerequisites
 
 You’ll need:
 
@@ -38,7 +96,6 @@ Make sure each app runs locally before starting ZAP.
 ```bash
 brew install --cask owasp-zap
 ```
-````
 
 After installation, launch ZAP from **Applications > OWASP ZAP** or by typing:
 

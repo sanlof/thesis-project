@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Suspect, FlagUpdate } from "../types";
+import { Suspect, FlagUpdateRequest } from "../types";
 
 function PoliceData() {
   const [suspects, setSuspects] = useState<Suspect[]>([]);
@@ -14,7 +14,16 @@ function PoliceData() {
         setLoading(true);
         setError(null);
 
-        const response = await fetch("/api/police/suspects");
+        console.log("[PoliceData] Fetching suspects...");
+
+        const response = await fetch("/api/police/suspects", {
+          credentials: "include",
+          headers: {
+            Accept: "application/json",
+          },
+        });
+
+        console.log("[PoliceData] Response status:", response.status);
 
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
@@ -22,9 +31,12 @@ function PoliceData() {
 
         const data: Suspect[] = await response.json();
         setSuspects(data);
+
+        console.log("[PoliceData] Suspects loaded:", data.length);
       } catch (err) {
         const errorMessage =
           err instanceof Error ? err.message : "Unknown error";
+        console.error("[PoliceData] Error fetching suspects:", errorMessage);
         setError(errorMessage);
       } finally {
         setLoading(false);
@@ -46,23 +58,34 @@ function PoliceData() {
       setTogglingId(suspect.personal_id);
       setToggleError(null);
 
-      const flagUpdate: FlagUpdate = {
+      const flagUpdate: FlagUpdateRequest = {
+        personal_id: suspect.personal_id,
         flag: newFlagValue,
       };
 
-      const response = await fetch(
-        `/api/police/suspects/${suspect.personal_id}/flag`,
-        {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(flagUpdate),
-        }
+      console.log(
+        "[PoliceData] Attempting flag toggle for:",
+        suspect.personal_id
       );
 
+      const response = await fetch("/api/police/suspects/flag", {
+        method: "POST",
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(flagUpdate),
+      });
+
+      console.log("[PoliceData] Toggle response status:", response.status);
+
       if (!response.ok) {
-        throw new Error(`Failed to update flag: ${response.status}`);
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(
+          `Failed to update flag: ${response.status} - ${
+            errorData.error || response.statusText
+          }`
+        );
       }
 
       const updatedSuspect: Suspect = await response.json();
@@ -73,8 +96,13 @@ function PoliceData() {
           s.personal_id === suspect.personal_id ? updatedSuspect : s
         )
       );
+
+      console.log("[PoliceData] Flag toggle successful");
+      setToggleError(null);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : "Unknown error";
+
+      console.error("[PoliceData] Flag toggle failed:", errorMessage);
       setToggleError(
         `Failed to toggle flag for ${suspect.full_name}: ${errorMessage}`
       );
