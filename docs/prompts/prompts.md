@@ -88,7 +88,7 @@ Include prompts that:
 
 Goal: Produce a barebones, functional UI that simply renders backend data in tabular format — nothing more.
 
-_See `frontend-prompts.md` for results._
+_See [`frontend-prompts.md`](frontend-prompts.md) for results._
 
 ## Prompt 3.2 (with Claude Sonnet 4.5)
 
