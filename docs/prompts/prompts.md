@@ -64,20 +64,6 @@ Using this repo, create a series of AI prompts in order to generate code for the
 
 _See `backend-prompts.md` for results._
 
-## Prompt 2.4 (with Claude Sonnet 4.5)
-
-A Rust backend project with multiple services (e.g., police-system and hospital-system) is failing to build and run due to sqlx errors such as missing relations or columns (e.g., relation "cases" does not exist, column "patient_id" does not exist) and unresolved module errors like use of unresolved module or unlinked crate 'log'.
-
-The database schema and seed data should remain unchanged.
-
-Write a detailed GitHub issue that:
-
-- Describes these compilation and runtime errors clearly,
-- Explains that the cause is backend queries and dependencies not matching the existing database schema,
-- Proposes a code-based solution (adjusting SQL queries and adding missing crates),
-- Includes example fixes or snippets,
-- And follows a structured format suitable for posting as a GitHub issue (with sections for description, cause, proposed fix, and testing).
-
 # 3 - Building the Frontend
 
 ## Prompt 3.1 (with Claude Sonnet 4.5)
@@ -168,7 +154,7 @@ Add **smart polling** to `frontend/src/components/HospitalData.tsx` that:
 
 Existing code uses `useEffect` with one-time fetch. Keep it simple and functional for a thesis demo.
 
-# 4 Security Review
+# 4 - Security Review
 
 ## Prompt 4.1
 
