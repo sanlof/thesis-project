@@ -1,9 +1,3 @@
-Perfect 👍
-Here’s your ~1000-word Markdown guide (ready to copy into a `.md` file for GitHub):
-
----
-
-````markdown
 # OWASP ZAP Automated Scan – Guide (macOS)
 
 This guide walks you through installing and using **OWASP ZAP’s Automatic Scan** to test local web applications for common security issues.  
@@ -38,6 +32,7 @@ Make sure each app runs locally before starting ZAP.
 ```bash
 brew install --cask owasp-zap
 ```
+
 ````
 
 After installation, launch ZAP from **Applications > OWASP ZAP** or by typing:
@@ -329,3 +324,4 @@ You’ve:
 
 **Legal Note:**
 Only scan systems you own or have explicit permission to test.
+````
